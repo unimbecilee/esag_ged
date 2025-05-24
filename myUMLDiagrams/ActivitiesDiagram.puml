@@ -1,0 +1,22 @@
+@startuml
+actor Utilisateur
+participant "Interface GED" as UI
+participant "Serveur Flask" as Server
+participant "Base de Données" as DB
+
+== Upload du document ==
+Utilisateur -> UI: Sélectionne un fichier
+UI -> Server: Envoie le fichier pour upload
+Server -> DB: Enregistre les métadonnées du document
+DB --> Server: Confirmation d'enregistrement
+Server --> UI: Upload réussi
+
+== Partage du document ==
+Utilisateur -> UI: Sélectionne un document à partager
+UI -> Server: Demande de partage avec un autre utilisateur
+Server -> DB: Enregistre les permissions de partage
+DB --> Server: Confirmation d'enregistrement
+Server --> UI: Partage confirmé
+UI -> Utilisateur: Affiche une notification de confirmation
+
+@enduml

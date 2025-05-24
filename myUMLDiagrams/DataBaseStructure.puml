@@ -1,0 +1,73 @@
+@startuml
+
+entity Utilisateur {
+    *id : int
+    nom : string
+    prenom : string
+    email : string
+    mot_de_passe : string
+    categorie : string
+    numero_tel : real
+    role : enum
+}
+
+entity Document {
+    *id : int
+    titre : string
+    fichier : string
+    taille : int
+    date_ajout : datetime
+    derniere_modification : datetime
+    modifie_par : string
+    description : text
+    proprietaire_id : int
+}
+
+entity Partage {
+    *id : int
+    document_id : int
+    utilisateur_id : int
+    permissions : enum
+    date_partage : datetime
+}
+
+entity Historique {
+    *id : int
+    action : string
+    utilisateur_id : int
+    document_id : int
+    date_action : datetime
+}
+
+entity Corbeille {
+    *id : int
+    document_id : int
+    utilisateur_id : int
+    date_suppression : datetime
+}
+
+entity Numerisation {
+    *id : int
+    utilisateur_id : int
+    fichier_scanné : string
+    texte_reconnu : text
+    date_scan : datetime
+}
+
+entity TableauDeBord {
+    *id : int
+    utilisateur_id : int
+    preferences : JSON
+}
+
+Utilisateur ||--o{ Document : "possède"
+Document ||--o{ Partage : "partagé avec"
+Utilisateur ||--o{ Partage : "a accès"
+Utilisateur ||--o{ Historique : "effectue"
+Document ||--o{ Historique : "concerne"
+Document ||--o{ Corbeille : "supprimé dans"
+Utilisateur ||--o{ Corbeille : "supprime"
+Utilisateur ||--o{ Numerisation : "scanne"
+Utilisateur ||--o{ TableauDeBord : "personnalise"
+
+@enduml

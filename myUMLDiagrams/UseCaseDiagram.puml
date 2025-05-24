@@ -1,0 +1,60 @@
+@startuml
+
+actor Utilisateur
+
+left to right direction
+
+rectangle "Gestion des Documents" {
+  usecase "Numériser un Document" as UC1
+  usecase "Uploader un Document" as UC2
+  usecase "Afficher les Documents" as UC3
+  usecase "Afficher le Contenu d'un Document" as UC4
+  usecase "Télécharger un Document" as UC5
+  usecase "Imprimer un Document" as UC6
+  usecase "Rechercher un Document" as UC7
+}
+
+rectangle "Gestion des Comptes" {
+  usecase "Se Connecter" as UC8
+  usecase "Se Déconnecter" as UC9
+  usecase "Modifier les Informations de Compte" as UC10
+}
+
+rectangle "Partage de Documents" {
+  usecase "Donner l'Accès à un Document" as UC11
+  usecase "Retirer l'Accès à un Document" as UC12
+}
+
+rectangle "Gestion de l'Historique" {
+  usecase "Afficher l'Historique" as UC13
+  usecase "Supprimer une Action de l'Historique" as UC14
+}
+
+rectangle "Corbeille" {
+  usecase "Consulter la Corbeille" as UC15
+  usecase "Restaurer un Document" as UC16
+}
+
+rectangle "Personnalisation" {
+  usecase "Personnaliser le Tableau de Bord" as UC17
+}
+
+Utilisateur --> UC1
+Utilisateur --> UC2
+Utilisateur --> UC3
+Utilisateur --> UC4
+Utilisateur --> UC5
+Utilisateur --> UC6
+Utilisateur --> UC7
+Utilisateur --> UC8
+Utilisateur --> UC9
+Utilisateur --> UC10
+Utilisateur --> UC11
+Utilisateur --> UC12
+Utilisateur --> UC13
+Utilisateur --> UC14
+Utilisateur --> UC15
+Utilisateur --> UC16
+Utilisateur --> UC17
+
+@enduml

@@ -1,0 +1,99 @@
+@startuml
+class Utilisateur {
+    +id: int
+    +nom: string
+    +prenom: string
+    +email: string
+    +mot_de_passe: string
+    +categorie: string
+    +numero_tel: real
+    +role: enum {Admin, Utilisateur}
+    --
+    +creer_compte()
+    +modifier_infos()
+    +supprimer_compte()
+    +se_connecter()
+    +se_deconnecter()
+}
+
+class Document {
+    +id: int
+    +titre: string
+    +fichier: string
+    +taille: int
+    +date_ajout: datetime
+    +derniere_modification: datetime
+    +modifie_par: string
+    +description: text
+    +proprietaire_id: int
+    --
+    +uploader()
+    +afficher()
+    +telecharger()
+    +imprimer()
+    +supprimer()
+    +rechercher()
+}
+
+class Partage {
+    +id: int
+    +document_id: int
+    +utilisateur_id: int
+    +permissions: enum {Lecture, Ecriture}
+    +date_partage: datetime
+    --
+    +partager()
+    +retirer_acces()
+}
+
+class Historique {
+    +id: int
+    +action: string
+    +utilisateur_id: int
+    +document_id: int
+    +date_action: datetime
+    --
+    +enregistrer_action()
+    +afficher_historique()
+    +supprimer_action()
+}
+
+class Corbeille {
+    +id: int
+    +document_id: int
+    +utilisateur_id: int
+    +date_suppression: datetime
+    --
+    +restaurer_document()
+    +vider_corbeille()
+}
+
+class Numerisation {
+    +id: int
+    +utilisateur_id: int
+    +fichier_scanné: string
+    +texte_reconnu: text
+    +date_scan: datetime
+    --
+    +scanner_document()
+    +extraire_texte_OCR()
+}
+
+class TableauDeBord {
+    +id: int
+    +utilisateur_id: int
+    +preferences: JSON
+    --
+    +personnaliser_tableau()
+    +afficher_tableau()
+}
+
+Utilisateur "1" -- "N" Document : possède
+Utilisateur "1" -- "N" Partage : partage
+Document "1" -- "N" Partage : partagé_avec
+Utilisateur "1" -- "N" Historique : effectue
+Utilisateur "1" -- "1" TableauDeBord : personnalise
+Utilisateur "1" -- "N" Numerisation : scanne
+Document "1" -- "1" Corbeille : supprimé
+
+@enduml

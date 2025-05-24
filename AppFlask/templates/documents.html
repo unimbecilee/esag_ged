@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+
+{% block title %}Mes documents{% endblock %}
+
+{% block content %}
+
+{% include 'navigation.html' %}
+
+<style>
+    /* Form Styling */
+    form[action="{{ url_for('document.upload_document') }}"] {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        margin-bottom: 30px;
+        max-width: 600px;
+    }
+
+    label {
+        font-weight: 500;
+        color: #444;
+        margin-bottom: 5px;
+        display: block;
+    }
+
+    input[type="file"],
+    textarea,
+    select {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        font-size: 1rem;
+        transition: border-color 0.3s;
+    }
+
+    input[type="file"]:focus,
+    textarea:focus,
+    select:focus {
+        border-color: #007bff;
+        outline: none;
+        box-shadow: 0 0 5px rgba(0, 123, 255, 0.2);
+    }
+
+    textarea {
+        resize: vertical;
+        min-height: 100px;
+    }
+
+    button[type="submit"] {
+        background-color: #007bff;
+        color: #fff;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1rem;
+        font-weight: 500;
+        transition: background-color 0.3s;
+        align-self: flex-start;
+    }
+
+    button[type="submit"]:hover {
+        background-color: #0056b3;
+    }
+
+</style>
+
+<!-- CONTENT -->
+<section id="content">
+    <nav>
+        <i class='bx bx-menu' ></i>
+        <form action="{{ url_for('search.search') }}" method="get" style="visibility:hidden;">
+            <div class="form-input">
+                <input type="search" name="q" placeholder="Rechercher...">
+                <button type="submit" class="search-btn"><i class='bx bx-search' ></i></button>
+            </div>
+        </form>
+        <input type="checkbox" id="switch-mode" hidden>
+        <label for="switch-mode" class="switch-mode"></label>
+        <a href="#" class="notification">
+            <i class='bx bxs-bell' ></i>
+            <span class="num">8</span>
+        </a>
+        <a href="#" class="profile">
+            <a href="{{ url_for('auth.account') }}" class="profile"><i class='bx bxs-user'></i></a>
+        </a>
+    </nav>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <div class="flash-message {{ category }}">{{ message }}</div>
+        {% endfor %}
+    {% endwith %}
+    
+    <!-- MAIN -->
+    <main>
+
+        <h3>Uploader un document</h3>
+        <form action="{{ url_for('document.upload_document') }}" method="POST" enctype="multipart/form-data">
+            <label for="file">Fichier :</label>
+            <input type="file" name="file" required>
+
+            <label for="description">Description :</label>
+            <textarea name="description"></textarea>
+            <label for="categorie">Catégorie :</label>
+            <select name="categorie" required>
+                <option value="">-- Choisir une catégorie --</option>
+                <option value="Note interne">Note interne</option>
+                <option value="Lettre administrative">Lettre administrative</option>
+                <option value="Formulaire">Formulaire</option>
+                <option value="Demande">Demande</option>
+                <option value="Rapport">Rapport</option>
+                <option value="Planning">Planning</option>
+            </select>
+            <button type="submit">📤 Uploader</button>
+        </form>
+
+        
+    </main>
+    <!-- MAIN -->
+</section>
+<!-- CONTENT -->
+{% endblock %}

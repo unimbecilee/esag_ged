@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>{{ title }}</h2>
+  <pre style="white-space: pre-wrap;">{{ content }}</pre>
+  <a href="{{ url_for('document.list_documents') }}" class="btn btn-primary mt-3">← Retour</a>
+{% endblock %}

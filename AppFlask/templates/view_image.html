@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>{{ title }}</h2>
+  <img src="{{ url_for('document.serve_uploaded_file', filename=title) }}" alt="{{ title }}" class="img-fluid">
+  <a href="{{ url_for('document.list_documents') }}" class="btn btn-primary mt-3">← Retour</a>
+{% endblock %}

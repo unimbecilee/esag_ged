@@ -1,0 +1,66 @@
+ged_flask/
+|-- app/
+|   |-- __init__.py              # Initialisation Flask
+|   |-- db.py                    # Connexion à la base de données
+|   |-- routes/                  # Routes Flask
+|   |   |-- __init__.py
+|   |   |-- auth_routes.py       # Connexion, déconnexion, compte
+|   |   |-- document_routes.py   # Upload, affichage, impression, corbeille
+|   |   |-- scan_routes.py       # Numérisation, OCR
+|   |   |-- search_routes.py     # Recherche de documents
+|   |   |-- dashboard_routes.py  # Personnalisation du tableau de bord
+|-- templates/
+|   |-- base.html                # Template de base
+|   |-- login.html               # Page de connexion
+|   |-- account.html             # Page de gestion de compte
+|   |-- documents.html           # Liste des documents
+|   |-- document_detail.html     # Détail d'un document
+|   |-- trash.html               # Corbeille
+|   |-- search_results.html      # Résultats de recherche
+|   |-- preferences.html         # Personnalisation du tableau de bord
+|-- static/
+|   |-- css/
+|   |   |-- style.css            # Styles
+|   |-- js/
+|   |   |-- script.js            # Scripts
+|-- uploads/                     # Fichiers uploadés
+|-- main.py                      # Point d'entrée de l'application
+|-- config.py                    # Configuration (clé secrète, etc.)
+
+
+
+
+ESAG_GED/                  # Dossier principal
+|-- AppFlask/              # Dossier de l'application Flask
+|   |-- __init__.py        # Initialisation de l'application Flask
+|   |-- db.py              # Connexion à la base de données
+|   |-- routes/            # Routes Flask organisées par fonctionnalité
+|   |   |-- __init__.py
+|   |   |-- auth_routes.py         # Connexion, déconnexion, compte
+|   |   |-- document_routes.py     # Upload, affichage, partage, impression, suppression
+|   |   |-- scan_routes.py         # Numérisation, OCR, consultation des fichiers scannés
+|   |   |-- search_routes.py       # Recherche de documents
+|   |   |-- trash_routes.py        # Gestion de la corbeille
+|   |   |-- dashboard_routes.py    # Personnalisation du tableau de bord
+|-- templates/             # Fichiers HTML
+|   |-- base.html          # Template de base
+|   |-- login.html         # Connexion
+|   |-- account.html       # Gestion du compte
+|   |-- dashboard.html     # Tableau de bord
+|   |-- documents.html     # Liste des documents
+|   |-- document_detail.html   # Détails d'un document
+|   |-- shared_documents.html  # Documents partagés
+|   |-- scanned_files.html     # Liste des fichiers numérisés
+|   |-- scanned_file_detail.html # Détail d'un fichier numérisé
+|   |-- preferences.html     # Personnalisation du tableau de bord
+|   |-- trash.html           # Corbeille
+|   |-- search_results.html  # Résultats de recherche
+|   |-- history.html         # Historique des actions
+|-- static/                # Fichiers statiques
+|   |-- css/
+|   |   |-- style.css       # Styles
+|   |-- js/
+|   |   |-- script.js       # Scripts
+|-- uploads/               # Dossier des fichiers uploadés
+|-- main.py                # Point d'entrée de l'application Flask
+|-- config.py              # Configuration de l'application

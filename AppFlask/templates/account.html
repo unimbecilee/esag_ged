@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Mon compte{% endblock %}
+
+{% block content %}
+<h2>Mon compte</h2>
+
+<form method="post" action="{{ url_for('auth.account') }}">
+    <label>Nom :</label>
+    <input type="text" name="nom" value="{{ user.nom }}" required>
+
+    <label>Prénom :</label>
+    <input type="text" name="prenom" value="{{ user.prenom }}" required>
+
+    <label>Email :</label>
+    <input type="email" name="email" value="{{ user.email }}" required>
+
+    <label>Numéro de téléphone :</label>
+    <input type="text" name="numero_tel" value="{{ user.numero_tel }}">
+
+    <label for="service">Service :</label>
+    <select name="service" id="service" required>
+        <option value="">-- Choisir --</option>
+        <option value="Scolarité" {% if user.service == 'Scolarité' %}selected{% endif %}>Scolarité</option>
+        <option value="Comptabilité">Comptabilité</option>
+        <option value="RH">Ressources Humaines</option>
+        <option value="Secrétariat">Secrétariat</option>
+        <option value="Direction">Direction</option>
+    </select>
+
+
+    <button type="submit">Mettre à jour</button>
+</form>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+        <div class="flash-message {{ category }}">{{ message }}</div>
+    {% endfor %}
+{% endwith %}
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}Détail du document{% endblock %}
+
+{% block content %}
+    <h2>{{ document.titre }}</h2>
+    <p><strong>Description :</strong> {{ document.description }}</p>
+    <p><strong>Date d'ajout :</strong> {{ document.date_ajout }}</p>
+    <p><strong>Dernière modification :</strong> {{ document.derniere_modification }}</p>
+
+    <a href="{{ url_for('document.download_document', filename=document.fichier) }}" class="btn">⬇️ Télécharger</a>
+    <a href="{{ url_for('document.print_document', doc_id=document.id) }}" class="btn">🖨️ Imprimer</a>
+
+    <form action="{{ url_for('document.delete_document', doc_id=document.id) }}" method="post" style="display:inline;">
+        <button type="submit" onclick="return confirm('Supprimer ce document ?')">🗑️ Supprimer</button>
+    </form>
+
+    <h3>Partager ce document</h3>
+    <form action="{{ url_for('document.share_document', doc_id=document.id) }}" method="post">
+        <label>Choisir un utilisateur :</label>
+        <select name="user_id" required>
+            {% for user in users %}
+                {% if user.id != session.user_id %}
+                    <option value="{{ user.id }}">{{ user.nom }} {{ user.prenom }}</option>
+                {% endif %}
+            {% endfor %}
+        </select>
+
+        <label>Permissions :</label>
+        <select name="permissions" required>
+            <option value="lecture">Lecture</option>
+            <option value="écriture">Écriture</option>
+            <option value="admin">Admin</option>
+        </select>
+
+        <button type="submit">Partager</button>
+    </form>
+
+{% endblock %}

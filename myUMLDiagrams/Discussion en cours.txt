@@ -1,0 +1,164 @@
+Formulaire de recherche (à mettre dans la navbar ou le tableau de bord) :
+
+
+<form action="{{ url_for('search') }}" method="get">
+    <input type="text" name="q" placeholder="Rechercher un document...">
+    <button type="submit">Rechercher</button>
+</form>
+
+
+ Fonctionnalités principales :
+
+Connexion/déconnexion des utilisateurs → Terminé
+Modification des infos de compte → Terminé
+Gestion des documents :
+Upload de documents → Terminé
+Affichage des documents → Terminé
+Consultation du contenu → Terminé
+Téléchargement → Terminé
+Impression → Terminé
+Numérisation → Terminé (reste la consultation des fichiers scannés)
+OCR → Terminé
+Recherche de documents → Terminé
+✅ Fonctionnalités secondaires :
+
+Gestion de la corbeille → Terminé
+Personnalisation du tableau de bord → En cours (mode sombre ok, reste à définir d'autres préférences)
+👉 Ce qu’il reste :
+
+Consultation des fichiers numérisés (comme on l’a mis en pause)
+Ajouter des préférences pour le tableau de bord
+On peut :
+
+Terminer la personnalisation du tableau de bord en ajoutant d'autres préférences
+Revenir sur la consultation des fichiers numérisés
+
+
+
+
+
+ged_flask/
+|-- app/
+|   |-- __init__.py              # Initialisation Flask
+|   |-- db.py                    # Connexion à la base de données
+|   |-- routes/                  # Routes Flask
+|   |   |-- __init__.py
+|   |   |-- auth_routes.py       # Connexion, déconnexion, compte
+|   |   |-- document_routes.py   # Upload, affichage, impression, corbeille
+|   |   |-- scan_routes.py       # Numérisation, OCR
+|   |   |-- search_routes.py     # Recherche de documents
+|   |   |-- dashboard_routes.py  # Personnalisation du tableau de bord
+|-- templates/
+|   |-- base.html                # Template de base
+|   |-- login.html               # Page de connexion
+|   |-- account.html             # Page de gestion de compte
+|   |-- documents.html           # Liste des documents
+|   |-- document_detail.html     # Détail d'un document
+|   |-- trash.html               # Corbeille
+|   |-- search_results.html      # Résultats de recherche
+|   |-- preferences.html         # Personnalisation du tableau de bord
+|-- static/
+|   |-- css/
+|   |   |-- style.css            # Styles
+|   |-- js/
+|   |   |-- script.js            # Scripts
+|-- uploads/                     # Fichiers uploadés
+|-- main.py                      # Point d'entrée de l'application
+|-- config.py                    # Configuration (clé secrète, etc.)
+
+
+
+La seule chose qu’on pourrait ajuster plus tard, c’est peut-être :
+
+Ajouter des validations plus poussées sur les formulaires (emails, champs obligatoires)
+Gérer les erreurs avec des pages d'erreur personnalisées (404, 500)
+Ajouter des permissions avancées selon le rôle utilisateur (Admin, Utilisateur)
+Améliorer la sécurité (hachage de mot de passe déjà en place, mais on peut aller plus loin)
+
+
+document_detail.html → Pour afficher les détails d'un document spécifique (titre, description, date, actions)
+scanned_document.html → Afficher le texte reconnu via l'OCR après la numérisation
+scanned_files.html → Liste de tous les fichiers numérisés
+scanned_file_detail.html → Détail d'un fichier numérisé (image ou texte extrait)
+dashboard.html → Page principale du tableau de bord, avec résumé, stats, liens rapides
+Ces fichiers sont cohérents avec les fonctionnalités qu’on a mises en place.
+
+
+Ajouter des pages d’erreur personnalisées (404.html, 500.html)
+Améliorer la sécurité (ex : protection CSRF, validation plus poussée des formulaires)
+Mettre en place des rôles avancés (Admin, Utilisateur) avec des permissions spécifiques
+Optimiser les requêtes SQL si tu prévois d’avoir beaucoup de documents et d’utilisateurs
+
+
+
+💡 Pour le message "GET /favicon.ico", c’est juste le navigateur qui cherche l’icône du site. On peut ignorer ça pour le moment, sauf si tu veux mettre une petite icône personnalisée après. 😉
+
+
+
+
+INSERT INTO Utilisateur (nom, prenom, email, mot_de_passe, categorie, numero_tel, role)
+VALUES (
+    'TonNom', 
+    'TonPrenom', 
+    'tonemail@example.com', 
+    SHA2('tonmotdepasse', 256), -- Hachage du mot de passe
+    'Administration', 
+    '0123456789', 
+    'Admin'
+);
+📝 Explication :
+
+SHA2('tonmotdepasse', 256) → Hache le mot de passe (si tu utilises bien le hachage dans ton auth_routes.py)
+role → Mets "Admin" si tu veux des droits complets ou "Utilisateur" pour les droits basiques
+Adapte les valeurs (TonNom, tonemail@example.com, etc.) comme tu veux
+
+
+
+INSERT INTO Utilisateur (nom, prenom, email, mot_de_passe, categorie, numero_tel, role)
+VALUES (
+    'KAWAYA', 
+    'Gaston', 
+    'gastonkaway@gmailcom', 
+    SHA2('tonmotdepasse', 256), -- Hachage du mot de passe
+    'Administration', 
+    '70721859', 
+    'Utilisateur'
+);
+
+Gérer l'erreur qu'il ne doit pas y avoir 2 mêmes adresses mail dans la db
+
+
+08/03
+- Modélisation et implémentation de page et processus d'authentification complète (Inscription et connexion)
+
+
+Étape 3 : Test depuis ton téléphone
+------------
+Connecte ton téléphone au même réseau Wi-Fi que ton PC.
+Remplace 127.0.0.1 par l’adresse IP locale de ton PC (ex : http://192.168.x.x:5000/documents).
+Ouvre la page /documents et essaye de numériser une image ou un PDF depuis ton téléphone.
+
+
+
+
+
+
+
+Ou : Remplir le champ content avec le contenu du fichier (si tu veux stocker les fichiers en base de données aussi)
+Dans la route upload_document :
+
+
+Copier
+Modifier
+content = file.read()  # lit le contenu binaire du fichier
+Et tu modifies la requête :
+
+
+Copier
+Modifier
+cursor.execute("""
+    INSERT INTO Document (titre, fichier, content, description, taille, mime_type, date_ajout, proprietaire_id)
+    VALUES (%s, %s, %s, %s, %s, %s, NOW(), %s)
+""", (title, unique_filename, content, description, file_size, mime_type, proprietaire_id))
+Mais ce n’est pas recommandé si tu veux éviter de trop alourdir la base.
+

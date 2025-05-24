@@ -1,0 +1,17 @@
+<!-- SIDEBAR -->
+<section id="sidebar">
+    <a href="{{ url_for('dashboard.manage_preferences') }}" class="brand">
+        <i class='bx bxs-smile'></i>
+        <span class="text">GED Dashboard</span>
+    </a>
+    <ul class="side-menu top">
+        <li class="active"><a href="{{ url_for('document.list_documents') }}"><i class='bx bxs-dashboard'></i><span class="text">Documents</span></a></li>
+        <li><a href="{{ url_for('scan.scan_document') }}"><i class='bx bxs-camera'></i><span class="text">Numérisation</span></a></li>
+        <li><a href="{{ url_for('search.search') }}"><i class='bx bxs-search'></i><span class="text">Recherche</span></a></li>
+        <li><a href="{{ url_for('trash.view_trash') }}"><i class='bx bxs-trash'></i><span class="text">Corbeille</span></a></li>
+    </ul>
+    <ul class="side-menu">
+        <li><a href="{{ url_for('auth.account') }}"><i class='bx bxs-user'></i><span class="text">Mon Compte</span></a></li>
+        <li><a href="{{ url_for('auth.logout') }}" class="logout"><i class='bx bxs-log-out-circle'></i><span class="text">Déconnexion</span></a></li>
+    </ul>
+</section>

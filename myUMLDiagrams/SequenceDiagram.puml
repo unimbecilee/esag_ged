@@ -1,0 +1,10 @@
+@startuml
+[*] --> Brouillon : Document créé
+Brouillon --> Enregistré : Document validé
+Enregistré --> Partagé : Document partagé avec un utilisateur
+Partagé --> Modifié : Modification par un utilisateur autorisé
+Modifié --> Enregistré : Sauvegarde des modifications
+Enregistré --> Supprimé : Document déplacé vers la corbeille
+Supprimé --> Restauré : Restauration du document
+Supprimé --> [*] : Document définitivement supprimé
+@enduml

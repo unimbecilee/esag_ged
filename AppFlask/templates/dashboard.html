@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block title %}Tableau de bord{% endblock %}
+
+{% block content %}
+{% include 'navigation.html' %}
+
+<section id="content">
+    <nav>
+        <i class='bx bx-menu'></i>
+        <a href="#" class="nav-link">Catégories</a>
+        <form action="{{ url_for('search.search') }}" method="get">
+            <input type="search" name="q" placeholder="Rechercher...">
+            <button type="submit"><i class='bx bx-search'></i></button>
+        </form>
+        <a href="#" class="notification"><i class='bx bxs-bell'></i></a>
+        <a href="{{ url_for('auth.account') }}" class="profile"><i class='bx bxs-user'></i></a>
+    </nav>
+
+    <h1>Bienvenue sur ESAG GED 🎉</h1>
+    <p>Votre solution de gestion électronique de documents.</p>         
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <div class="flash-message {{ category }}">{{ message }}</div>
+        {% endfor %}
+    {% endwith %}
+   
+</section>
+{% endblock %}

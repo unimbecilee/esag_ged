@@ -1,0 +1,32 @@
+@startuml
+start
+:Utilisateur se connecte;
+if (Authentification réussie ?) then (Oui)
+    :Affiche le tableau de bord;
+    repeat
+        :Utilisateur choisit une action;
+        switch (Action sélectionnée) 
+            case (Uploader un document)
+                :Sélectionner un fichier;
+                :Envoyer le fichier au serveur;
+                :Stocker les métadonnées dans la base de données;
+                :Confirmation de l'upload;
+            case (Afficher un document)
+                :Sélectionner un document;
+                :Récupérer le fichier et afficher le contenu;
+            case (Partager un document)
+                :Sélectionner un document;
+                :Choisir un utilisateur cible;
+                :Définir les permissions (lecture/écriture);
+                :Enregistrer les permissions dans la base de données;
+                :Notifier l'utilisateur cible;
+            case (Se déconnecter)
+                stop
+        endswitch
+    repeat while (Utilisateur souhaite continuer ?)
+    :Utilisateur se déconnecte;
+else (Non)
+    :Afficher un message d'erreur;
+    stop
+endif
+@enduml

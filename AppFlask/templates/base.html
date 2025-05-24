@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GED - {% block title %}{% endblock %}</title>
+
+    <!-- Boxicons & Styles -->
+    <link href='https://unpkg.com/boxicons@2.0.9/css/boxicons.min.css' rel='stylesheet'>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% block content %}{% endblock %}
+    <main>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <div class="flash-message {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endwith %}
+
+        <div class="dropdown">
+            <button class="dropbtn">
+                <i class="fas fa-user"></i>
+            </button>
+            <div class="dropdown-content">
+                <a class="dropdown-item" href="{{ url_for('settings.parametres') }}">
+                    <i class="fas fa-cog"></i> Paramètres
+                </a>
+                <a class="dropdown-item" href="{{ url_for('auth.logout') }}">
+                    <i class="fas fa-sign-out-alt"></i> Déconnexion
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+{% extends 'base.html' %}
+
+{% block title %}Fichiers numérisés{% endblock %}
+
+{% block content %}
+
+{% include 'navigation.html' %}
+
+<!-- CONTENT -->
+<section id="content">
+    <nav>
+        <i class='bx bx-menu' ></i>
+        <!-- <a href="#" class="nav-link">Categories</a> -->
+        <form action="{{ url_for('search.search') }}" method="get" style="visibility:hidden;">
+            <div class="form-input">
+                <input type="search" name="q" placeholder="Rechercher...">
+                <button type="submit" class="search-btn"><i class='bx bx-search' ></i></button>
+            </div>
+        </form>
+        <input type="checkbox" id="switch-mode" hidden>
+        <label for="switch-mode" class="switch-mode"></label>
+        <a href="#" class="notification">
+            <i class='bx bxs-bell' ></i>
+            <span class="num">8</span>
+        </a>
+        <a href="#" class="profile">
+            <a href="{{ url_for('auth.account') }}" class="profile"><i class='bx bxs-user'></i></a>
+        </a>
+    </nav>
+    <!-- MAIN -->
+    <main>
+        <h2>Fichiers numérisés</h2>
+
+    {% if scanned_files %}
+    <table>
+        <tr>
+            <th>Fichier</th>
+            <th>Date de scan</th>
+            <th>Actions</th>
+        </tr>
+        {% for file in scanned_files %}
+        <tr>
+            <td>{{ file.fichier_scanne }}</td>
+            <td>{{ file.date_scan }}</td>
+            <td>
+                <a href="{{ url_for('scan.view_scanned_file', scan_id=file.id) }}">👁️ Voir</a>
+            </td>
+            <td>
+                <form action="{{ url_for('scan.extract_text', scan_id=file.id) }}" method="post" style="display:inline;">
+                    <button type="submit">📝 Extraire le texte (OCR)</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+    {% else %}
+    <p>Aucun fichier numérisé disponible.</p>
+    {% endif %}
+    </main>
+    <!-- MAIN -->
+</section>
+<!-- CONTENT -->
+
+{% endblock %}
+
+
+
+
+
+
+
+
+
+
+

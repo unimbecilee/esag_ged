@@ -1,0 +1,38 @@
+      Liste des fonctionnalités
+--------------------------------------
+
+  - Connexion
+  - Déconnexion
+  - Modifier les informations de compte
+  - Gérer les documents :
+  	|- Scanner ou... 
+	|- Uploader dans le système 
+	|- Afficher les documents Uploadés 
+	|- Afficher le contenu de chaque document 
+	|
+	|- Partager le document :
+	|	|- donner l'accès visibilité à des utilisateurs
+	|	|- retirer l'accès visibilité à des utilisateurs
+	|
+  	|- Télécharger le document
+	|- Imprimer le document 
+	|- Rechercher un document
+	|- 
+
+  - Gérer l'historique :
+	|- Afficher un historique des actions(partage de document)
+	|- supprimer une action de l'historique 
+
+  - Corbeille
+  - Numérisation (module de numérisation - web_scanning)
+	Outil de reconnaissance optique de caractère 
+  - Personnaliser le tableau de bord
+
+
+
+
+
+
+
+
+

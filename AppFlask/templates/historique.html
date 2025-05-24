@@ -1,0 +1,258 @@
+{% extends 'base.html' %}
+
+{% block title %}Historique des actions{% endblock %}
+
+{% block content %}
+{% include 'navigation.html' %}
+
+<section id="content">
+    <nav>
+        <i class='bx bx-menu'></i>
+        <form action="{{ url_for('search.search') }}" method="get" style="visibility:hidden;">
+            <div class="form-input">
+                <input type="search" name="q" placeholder="Rechercher...">
+                <button type="submit" class="search-btn"><i class='bx bx-search'></i></button>
+            </div>
+        </form>
+        <input type="checkbox" id="switch-mode" hidden>
+        <label for="switch-mode" class="switch-mode"></label>
+        <a href="#" class="notification">
+            <i class='bx bxs-bell'></i>
+            <span class="num">8</span>
+        </a>
+        <a href="{{ url_for('auth.account') }}" class="profile"><i class='bx bxs-user'></i></a>
+    </nav>
+
+    <main>
+        <div class="head-title">
+            <div class="left">
+                <h3>Historique des actions</h3>
+            </div>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% for category, message in messages %}
+                <div class="flash-message {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endwith %}
+
+        <!-- Filtres -->
+        <div class="filters-section">
+            <form method="get" class="filters-form">
+                <div class="filter-group">
+                    <label for="action_type">Type d'action</label>
+                    <select name="action_type" id="action_type">
+                        <option value="">Tous</option>
+                        {% for type in action_types %}
+                        <option value="{{ type }}" {% if filters.action_type == type %}selected{% endif %}>
+                            {{ type }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="entity_type">Type d'entité</label>
+                    <select name="entity_type" id="entity_type">
+                        <option value="">Tous</option>
+                        {% for type in entity_types %}
+                        <option value="{{ type }}" {% if filters.entity_type == type %}selected{% endif %}>
+                            {{ type }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label for="date_from">Du</label>
+                    <input type="date" name="date_from" id="date_from" value="{{ filters.date_from }}">
+                </div>
+
+                <div class="filter-group">
+                    <label for="date_to">Au</label>
+                    <input type="date" name="date_to" id="date_to" value="{{ filters.date_to }}">
+                </div>
+
+                <button type="submit" class="filter-button">Filtrer</button>
+                <a href="{{ url_for('history.view_history') }}" class="reset-button">Réinitialiser</a>
+            </form>
+        </div>
+
+        {% if historique %}
+        <div class="table-data">
+            <div class="order">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Action</th>
+                            <th>Document</th>
+                            <th>Type</th>
+                            <th>Description</th>
+                            <th>Utilisateur</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ligne in historique %}
+                        <tr>
+                            <td>{{ ligne.date_action.strftime('%d-%m-%Y %H:%M') if ligne.date_action else '' }}</td>
+                            <td>
+                                <span class="badge 
+                                    {% if ligne.action == 'CREATE' %}badge-success
+                                    {% elif ligne.action == 'UPDATE' %}badge-info
+                                    {% elif ligne.action == 'DELETE' %}badge-danger
+                                    {% elif ligne.action == 'SHARE' %}badge-warning
+                                    {% else %}badge-secondary{% endif %}">
+                                    {{ ligne.action }}
+                                </span>
+                            </td>
+                            <td>{{ ligne.titre }}</td>
+                            <td>
+                                <span class="badge badge-primary">{{ ligne.type_document }}</span>
+                            </td>
+                            <td>{{ ligne.description }}</td>
+                            <td>{{ ligne.nom }} {{ ligne.prenom }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination">
+            {% if total_pages > 1 %}
+            <div class="pagination-info">
+                Page {{ current_page }} sur {{ total_pages }} ({{ total_count }} entrées)
+            </div>
+            <div class="pagination-controls">
+                {% if current_page > 1 %}
+                <a href="{{ url_for('history.view_history', page=current_page-1, **filters) }}" class="page-link">&laquo; Précédent</a>
+                {% endif %}
+
+                {% for p in range(max(1, current_page-2), min(total_pages+1, current_page+3)) %}
+                <a href="{{ url_for('history.view_history', page=p, **filters) }}" 
+                   class="page-link {% if p == current_page %}active{% endif %}">
+                    {{ p }}
+                </a>
+                {% endfor %}
+
+                {% if current_page < total_pages %}
+                <a href="{{ url_for('history.view_history', page=current_page+1, **filters) }}" class="page-link">Suivant &raquo;</a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+        {% else %}
+            <p>Aucune action enregistrée pour le moment.</p>
+        {% endif %}
+    </main>
+</section>
+
+<style>
+.badge {
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.badge-success { background-color: #28a745; color: white; }
+.badge-info { background-color: #17a2b8; color: white; }
+.badge-danger { background-color: #dc3545; color: white; }
+.badge-warning { background-color: #ffc107; color: black; }
+.badge-secondary { background-color: #6c757d; color: white; }
+.badge-primary { background-color: #007bff; color: white; }
+
+.filters-section {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.filters-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: flex-end;
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.filter-group label {
+    font-size: 14px;
+    color: #555;
+}
+
+.filter-group select,
+.filter-group input {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    min-width: 150px;
+}
+
+.filter-button,
+.reset-button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.filter-button {
+    background-color: #007bff;
+    color: white;
+}
+
+.reset-button {
+    background-color: #6c757d;
+    color: white;
+    text-decoration: none;
+}
+
+.pagination {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.pagination-info {
+    color: #666;
+    font-size: 14px;
+}
+
+.pagination-controls {
+    display: flex;
+    gap: 5px;
+}
+
+.page-link {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    color: #007bff;
+    text-decoration: none;
+}
+
+.page-link.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+.page-link:hover:not(.active) {
+    background-color: #f8f9fa;
+}
+</style>
+
+{% endblock %}

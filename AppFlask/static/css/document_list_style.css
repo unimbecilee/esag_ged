@@ -1,0 +1,222 @@
+/* Form and Section Styling */
+#content {
+    padding: 20px;
+    background-color: #f5f7fa;
+    min-height: 100vh;
+}
+
+main {
+    max-width: 1200px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+h3 {
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+/* Form Styling */
+form[action="{{ url_for('document.upload_document') }}"] {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    margin-bottom: 30px;
+    max-width: 600px;
+}
+
+label {
+    font-weight: 500;
+    color: #444;
+    margin-bottom: 5px;
+    display: block;
+}
+
+input[type="file"],
+textarea,
+select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+input[type="file"]:focus,
+textarea:focus,
+select:focus {
+    border-color: #007bff;
+    outline: none;
+    box-shadow: 0 0 5px rgba(0, 123, 255, 0.2);
+}
+
+textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+button[type="submit"] {
+    background-color: #007bff;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 500;
+    transition: background-color 0.3s;
+    align-self: flex-start;
+}
+
+button[type="submit"]:hover {
+    background-color: #0056b3;
+}
+
+/* Filter Form Styling */
+form[method="GET"] {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+form[method="GET"] select {
+    max-width: 300px;
+}
+
+/* Table Styling */
+.table-data {
+    overflow-x: auto;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+th, td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #333;
+}
+
+td {
+    color: #555;
+}
+
+tr:hover {
+    background-color: #f9f9f9;
+}
+
+/* Action Icons Styling */
+.action-icons {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.action-icons a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px;
+    border-radius: 5px;
+    transition: background 0.3s ease, color 0.3s ease;
+    cursor: pointer;
+}
+
+.action-icons svg {
+    stroke: #718096;
+    transition: stroke 0.3s ease;
+}
+
+.action-icons a:hover {
+    background: #edf2f7;
+}
+
+.action-icons a:hover svg {
+    stroke: #2d3748;
+}
+
+/* Specific Icon Colors on Hover */
+.action-icons a[href*='open_document']:hover svg {
+    stroke: #3182ce; /* Bleu pour "Ouvrir" */
+}
+
+.action-icons a[href*='download_document']:hover svg {
+    stroke: #38a169; /* Vert pour "Télécharger" */
+}
+
+.action-icons a[href*='edit_document']:hover svg {
+    stroke: #d69e2e; /* Jaune pour "Modifier" */
+}
+
+.action-icons a[onclick*='deleteDocument']:hover svg {
+    stroke: #e53e3e; /* Rouge pour "Supprimer" */
+}
+
+.action-icons a[href*='openModal']:hover svg {
+    stroke: #805ad5; /* Violet pour "Partager" */
+}
+
+.action-icons a[title='Imprimer']:hover svg {
+    stroke: #4a5568; /* Gris foncé pour "Imprimer" */
+}
+
+/* Flash Messages */
+.flash-message {
+    padding: 10px;
+    margin-bottom: 15px;
+    border-radius: 5px;
+}
+
+.flash-message.success {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.flash-message.error {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    main {
+        padding: 15px;
+    }
+
+    form[method="GET"] {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    form[method="GET"] select {
+        max-width: 100%;
+    }
+
+    th, td {
+        padding: 8px;
+        font-size: 0.9rem;
+    }
+
+    .action-icons {
+        gap: 8px;
+    }
+
+    .action-icons a {
+        padding: 4px;
+    }
+}

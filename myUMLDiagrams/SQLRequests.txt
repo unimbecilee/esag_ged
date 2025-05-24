@@ -1,0 +1,70 @@
+CREATE TABLE Utilisateur (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nom VARCHAR(50) NOT NULL,
+    prenom VARCHAR(50) NOT NULL,
+    email VARCHAR(100) NOT NULL UNIQUE,
+    mot_de_passe VARCHAR(255) NOT NULL,
+    categorie VARCHAR(50),
+    numero_tel VARCHAR(15),
+    role ENUM('admin', 'user') NOT NULL,
+    date_creation DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE Document (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    titre VARCHAR(100) NOT NULL,
+    fichier VARCHAR(255) NOT NULL,
+    taille INT,
+    date_ajout DATETIME DEFAULT CURRENT_TIMESTAMP,
+    derniere_modification DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    modifie_par VARCHAR(100),
+    description TEXT,
+    proprietaire_id INT,
+    FOREIGN KEY (proprietaire_id) REFERENCES Utilisateur(id)
+);
+
+CREATE TABLE Historique (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    action VARCHAR(100) NOT NULL,
+    utilisateur_id INT,
+    document_id INT,
+    date_action DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (utilisateur_id) REFERENCES Utilisateur(id),
+    FOREIGN KEY (document_id) REFERENCES Document(id)
+);
+
+CREATE TABLE Partage (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    document_id INT,
+    utilisateur_id INT,
+    permissions ENUM('lecture', 'écriture', 'admin') NOT NULL,
+    date_partage DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (document_id) REFERENCES Document(id),
+    FOREIGN KEY (utilisateur_id) REFERENCES Utilisateur(id)
+);
+
+CREATE TABLE Corbeille (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    document_id INT,
+    utilisateur_id INT,
+    date_suppression DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (document_id) REFERENCES Document(id),
+    FOREIGN KEY (utilisateur_id) REFERENCES Utilisateur(id)
+);
+
+CREATE TABLE Numerisation (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    utilisateur_id INT,
+    fichier_scanne VARCHAR(255) NOT NULL,
+    texte_reconnu TEXT,
+    date_scan DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (utilisateur_id) REFERENCES Utilisateur(id)
+);
+
+CREATE TABLE TableauDeBord (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    utilisateur_id INT,
+    preferences JSON,
+    FOREIGN KEY (utilisateur_id) REFERENCES Utilisateur(id)
+);
+
