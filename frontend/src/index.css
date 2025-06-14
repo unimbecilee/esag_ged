@@ -12,42 +12,197 @@ code {
     monospace;
 }
 
-/* Styles pour les menus déroulants */
-select, 
+/* Styles forcés pour les menus déroulants et Select */
+select {
+  background-color: #2a3657 !important;
+  color: white !important;
+  border-color: #3a445e !important;
+}
+
+select option {
+  background-color: #2a3657 !important;
+  color: white !important;
+  padding: 8px !important;
+}
+
+select option:hover,
+select option:focus,
+select option:checked {
+  background-color: #3a8bfd !important;
+  color: white !important;
+}
+
+/* Styles spécifiques pour Chrome/Safari */
+select::-webkit-scrollbar {
+  width: 8px;
+}
+
+select::-webkit-scrollbar-track {
+  background: #2a3657;
+}
+
+select::-webkit-scrollbar-thumb {
+  background: #3a445e;
+  border-radius: 4px;
+}
+
+/* Styles pour Firefox */
+@-moz-document url-prefix() {
+  select {
+    background-color: #2a3657 !important;
+    color: white !important;
+  }
+  
+  select option {
+    background-color: #2a3657 !important;
+    color: white !important;
+  }
+}
+
+/* Styles pour tous les navigateurs */
 .dropdown-menu,
 .dropdown-content {
-  background-color: #ffffff !important;
-  color: #000000 !important;
+  background-color: #2a3657 !important;
+  color: white !important;
 }
 
 .dropdown-item,
 .dropdown-option {
-  color: #000000 !important;
-  background-color: #ffffff !important;
+  color: white !important;
+  background-color: #2a3657 !important;
 }
 
 .dropdown-item:hover,
 .dropdown-option:hover {
-  background-color: #f0f0f0 !important;
-  color: #000000 !important;
+  background-color: #3a445e !important;
+  color: white !important;
 }
 
 /* Style spécifique pour les éléments de menu dans un thème sombre */
 .dark-theme .dropdown-menu,
 .dark-theme .dropdown-content {
-  background-color: #2a2a2a !important;
-  color: #ffffff !important;
-  border: 1px solid #404040;
+  background-color: #2a3657 !important;
+  color: white !important;
+  border: 1px solid #3a445e;
 }
 
 .dark-theme .dropdown-item,
 .dark-theme .dropdown-option {
-  color: #ffffff !important;
-  background-color: #2a2a2a !important;
+  color: white !important;
+  background-color: #2a3657 !important;
 }
 
 .dark-theme .dropdown-item:hover,
 .dark-theme .dropdown-option:hover {
-  background-color: #404040 !important;
-  color: #ffffff !important;
+  background-color: #3a445e !important;
+  color: white !important;
+}
+
+/* Styles pour Chakra UI Select */
+[data-theme="dark"] select,
+select[data-bg="#2a3657"] {
+  background-color: #2a3657 !important;
+  color: white !important;
+  border-color: #3a445e !important;
+}
+
+[data-theme="dark"] select option,
+select[data-bg="#2a3657"] option {
+  background-color: #2a3657 !important;
+  color: white !important;
+}
+
+/* Fallback pour navigateurs qui ne supportent pas color-scheme */
+@media (prefers-color-scheme: dark) {
+  select {
+    background-color: #2a3657 !important;
+    color: white !important;
+    border-color: #3a445e !important;
+  }
+  
+  select option {
+    background-color: #2a3657 !important;
+    color: white !important;
+  }
+}
+
+/* Règles spécifiques pour les options des Select */
+option {
+  background-color: #2a3657 !important;
+  color: white !important;
+}
+
+option:hover,
+option:checked,
+option:focus {
+  background-color: #3a8bfd !important;
+  color: white !important;
+}
+
+/* CORRECTION FORCÉE DES MENUS CHAKRA UI */
+.chakra-menu__menu-list {
+  background-color: #1c2338 !important;
+  border: 1px solid #3a445e !important;
+  border-radius: 6px !important;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4) !important;
+  z-index: 1500 !important;
+}
+
+.chakra-menu__menu-item {
+  background-color: transparent !important;
+  color: white !important;
+  padding: 8px 12px !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+}
+
+.chakra-menu__menu-item:hover,
+.chakra-menu__menu-item:focus,
+.chakra-menu__menu-item[data-focus] {
+  background-color: #2d3250 !important;
+  color: white !important;
+}
+
+/* Force l'apparence pour tous les éléments de menu possibles */
+[role="menu"] {
+  background-color: #1c2338 !important;
+  border: 1px solid #3a445e !important;
+  border-radius: 6px !important;
+}
+
+[role="menuitem"] {
+  background-color: transparent !important;
+  color: white !important;
+}
+
+[role="menuitem"]:hover,
+[role="menuitem"]:focus {
+  background-color: #2d3250 !important;
+  color: white !important;
+}
+
+/* Styles spécifiques pour les portails Chakra */
+.chakra-portal [role="menu"] {
+  background-color: #1c2338 !important;
+  border-color: #3a445e !important;
+}
+
+.chakra-portal [role="menuitem"] {
+  color: white !important;
+}
+
+.chakra-portal [role="menuitem"]:hover {
+  background-color: #2d3250 !important;
+}
+
+/* Force l'apparence même si les classes ne correspondent pas */
+div[data-popper-placement] {
+  background-color: #1c2338 !important;
+  border: 1px solid #3a445e !important;
+  border-radius: 6px !important;
+}
+
+div[data-popper-placement] button,
+div[data-popper-placement] div {
+  color: white !important;
 }

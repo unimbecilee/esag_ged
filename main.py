@@ -7,7 +7,8 @@ from AppFlask.routes import (
     trash_routes,
     dashboard_routes,
     workflow_routes,
-    organization_routes
+    organization_routes,
+    api_routes
 )
 
 

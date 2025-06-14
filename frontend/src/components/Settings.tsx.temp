@@ -1,0 +1,72 @@
+          <TabPanels mt={6}>
+            {/* Profil */}
+            <TabPanel p={0}>
+              <Card bg="gray.700">
+                <CardHeader>
+                  <HStack>
+                    <Icon as={asElementType(FiUser)} color="blue.400" boxSize={6} />
+                    <VStack align="start" spacing={0}>
+                      <Heading size="lg" color="white">
+                        Profil
+                      </Heading>
+                      <Text color="gray.400" fontSize="sm">
+                        Informations personnelles et compte
+                      </Text>
+                    </VStack>
+                  </HStack>
+                </CardHeader>
+                <Divider borderColor="gray.600" />
+                <CardBody>
+                  {/* Contenu du profil */}
+                </CardBody>
+              </Card>
+            </TabPanel>
+
+            {/* Sécurité */}
+            <TabPanel p={0}>
+              <Card bg="gray.700">
+                <CardHeader>
+                  <HStack>
+                    <Icon as={asElementType(FiShield)} color="blue.400" boxSize={6} />
+                    <VStack align="start" spacing={0}>
+                      <Heading size="lg" color="white">
+                        Sécurité
+                      </Heading>
+                      <Text color="gray.400" fontSize="sm">
+                        Mot de passe et authentification
+                      </Text>
+                    </VStack>
+                  </HStack>
+                </CardHeader>
+                <Divider borderColor="gray.600" />
+                <CardBody>
+                  {/* Contenu de sécurité */}
+                </CardBody>
+              </Card>
+            </TabPanel>
+
+            {/* Système (Admin seulement) */}
+            {isAdmin && (
+              <TabPanel p={0}>
+                <Card bg="gray.700">
+                  <CardHeader>
+                    <HStack>
+                      <Icon as={asElementType(FiDatabase)} color="blue.400" boxSize={6} />
+                      <VStack align="start" spacing={0}>
+                        <Heading size="lg" color="white">
+                          Système
+                        </Heading>
+                        <Text color="gray.400" fontSize="sm">
+                          Configuration système et maintenance
+                        </Text>
+                      </VStack>
+                    </HStack>
+                  </CardHeader>
+                  <Divider borderColor="gray.600" />
+                  <CardBody>
+                    {/* Contenu système */}
+                  </CardBody>
+                </Card>
+              </TabPanel>
+            )}
+          </TabPanels> 

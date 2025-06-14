@@ -1,0 +1,19 @@
+
+# Configuration Email ESAG GED - GMAIL DÉDIÉ
+# Remplacez les anciennes variables email par celles-ci :
+
+SMTP_SERVER = "smtp.gmail.com"
+SMTP_PORT = 587
+SMTP_USERNAME = "mainuser1006@gmail.com"
+SMTP_PASSWORD = "dzizhixzevtlwgle"
+SMTP_USE_TLS = True
+EMAIL_FROM = "mainuser1006@gmail.com"
+EMAIL_FROM_NAME = "ESAG GED"
+
+# Configuration Flask-Mail alternative
+MAIL_SERVER = "smtp.gmail.com"
+MAIL_PORT = 587
+MAIL_USE_TLS = True
+MAIL_USERNAME = "mainuser1006@gmail.com"
+MAIL_PASSWORD = "dzizhixzevtlwgle"
+MAIL_DEFAULT_SENDER = "mainuser1006@gmail.com"

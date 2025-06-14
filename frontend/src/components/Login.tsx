@@ -1,4 +1,4 @@
-import React, { useState, FormEvent, ChangeEvent } from "react";
+import React, { useState, FormEvent, ChangeEvent, useEffect } from "react";
 import {
   Box,
   Button,
@@ -15,19 +15,41 @@ import {
   Flex,
 } from "@chakra-ui/react";
 import { EmailIcon, LockIcon } from "@chakra-ui/icons";
+import { useNavigate } from "react-router-dom";
 import config from "../config";
 
 const API_URL = config.API_URL;
 
 interface LoginProps {
-  onAuthSuccess: (token: string) => void;
+  onAuthSuccess?: () => void;
 }
 
 const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loginSuccess, setLoginSuccess] = useState(false);
   const toast = useToast();
+  const navigate = useNavigate();
+
+  // Vérifier si l'utilisateur est déjà connecté au chargement
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (token) {
+      console.log("Token trouvé au chargement, redirection vers dashboard");
+      navigate("/dashboard");
+    }
+  }, [navigate]);
+
+  // Redirection après connexion réussie
+  useEffect(() => {
+    if (loginSuccess) {
+      console.log("Redirection après connexion réussie...");
+      setTimeout(() => {
+        navigate("/dashboard");
+      }, 1000); // Court délai pour laisser le toast s'afficher
+    }
+  }, [loginSuccess, navigate]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -61,7 +83,16 @@ const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
             console.log("Données utilisateur reçues:", data.user);
             localStorage.setItem("user", JSON.stringify(data.user));
           }
-          onAuthSuccess(data.token);
+          
+          // Appeler le callback si fourni
+          if (onAuthSuccess) {
+            console.log("Appel du callback onAuthSuccess");
+            onAuthSuccess();
+          }
+          
+          // Marquer la connexion comme réussie pour déclencher la redirection
+          setLoginSuccess(true);
+          
           toast({
             title: "Connexion réussie",
             description: "Bienvenue dans votre espace",

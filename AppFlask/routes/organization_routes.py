@@ -108,9 +108,11 @@ def create_organization(current_user):
         email_contact = data.get('email_contact', '')
         telephone_contact = data.get('telephone_contact', '')
         statut = data.get('statut', 'ACTIVE')
+        membres = data.get('membres', [])
 
         logger.info(f"Tentative de création d'organisation: {nom}")
-        logger.debug(f"Données reçues: {data}")
+        logger.info(f"Données reçues complètes: {data}")
+        logger.info(f"Membres reçus: {membres}")
 
         conn = db_connection()
         cursor = conn.cursor()
@@ -123,23 +125,68 @@ def create_organization(current_user):
 
         try:
             # Créer l'organisation
-            cursor.execute("""
+            insert_query = """
                 INSERT INTO organisation (
                     nom, description, adresse, email_contact, 
                     telephone_contact, statut, date_creation
                 )
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
-            """, (nom, description, adresse, email_contact, telephone_contact, 
+            """
+            logger.info(f"Exécution de la requête: {insert_query}")
+            logger.info(f"Avec les paramètres: nom={nom}, description={description}, adresse={adresse}, email_contact={email_contact}, telephone_contact={telephone_contact}, statut={statut}")
+            
+            cursor.execute(insert_query, (nom, description, adresse, email_contact, telephone_contact, 
                   statut, datetime.now()))
             
             org_id = cursor.fetchone()[0]
+            logger.info(f"Organisation créée avec ID: {org_id}")
 
             # Ajouter le créateur comme membre administrateur
-            cursor.execute("""
+            member_query = """
                 INSERT INTO membre (organisation_id, utilisateur_id, role, date_ajout)
                 VALUES (%s, %s, 'ADMIN', %s)
-            """, (org_id, current_user['id'], datetime.now()))
+            """
+            logger.info(f"Ajout du créateur comme admin: {member_query}")
+            logger.info(f"Avec les paramètres: org_id={org_id}, user_id={current_user['id']}")
+            
+            cursor.execute(member_query, (org_id, current_user['id'], datetime.now()))
+            logger.info("Créateur ajouté comme admin avec succès")
+            
+            # Ajouter les membres supplémentaires si présents
+            if membres:
+                logger.info(f"Ajout de {len(membres)} membres à l'organisation {org_id}")
+                for membre in membres:
+                    user_id = membre.get('user_id')
+                    role = membre.get('role', 'MEMBRE')
+                    logger.info(f"Tentative d'ajout du membre: user_id={user_id}, role={role}")
+                    
+                    # Vérifier si l'utilisateur existe
+                    cursor.execute("SELECT id FROM utilisateur WHERE id = %s", (user_id,))
+                    if not cursor.fetchone():
+                        logger.warning(f"L'utilisateur {user_id} n'existe pas")
+                        continue
+                    
+                    # Vérifier si l'utilisateur est déjà membre
+                    cursor.execute("""
+                        SELECT id FROM membre 
+                        WHERE organisation_id = %s AND utilisateur_id = %s
+                    """, (org_id, user_id))
+                    
+                    if cursor.fetchone():
+                        logger.warning(f"L'utilisateur {user_id} est déjà membre de l'organisation {org_id}")
+                        continue
+                    
+                    # Ajouter le membre
+                    add_member_query = """
+                        INSERT INTO membre (organisation_id, utilisateur_id, role, date_ajout)
+                        VALUES (%s, %s, %s, %s)
+                    """
+                    logger.info(f"Ajout du membre: {add_member_query}")
+                    logger.info(f"Avec les paramètres: org_id={org_id}, user_id={user_id}, role={role}")
+                    
+                    cursor.execute(add_member_query, (org_id, user_id, role, datetime.now()))
+                    logger.info(f"Utilisateur {user_id} ajouté à l'organisation {org_id} avec le rôle {role}")
 
             conn.commit()
             logger.info(f"Organisation '{nom}' créée avec succès (ID: {org_id})")
@@ -163,6 +210,7 @@ def create_organization(current_user):
         except Exception as e:
             conn.rollback()
             logger.error(f"Erreur SQL lors de la création de l'organisation: {str(e)}")
+            logger.exception("Détail de l'erreur SQL:")
             return jsonify({'message': f'Erreur lors de la création de l\'organisation: {str(e)}'}), 500
         finally:
             cursor.close()
@@ -170,6 +218,7 @@ def create_organization(current_user):
 
     except Exception as e:
         logger.error(f"Erreur lors de la création de l'organisation: {str(e)}")
+        logger.exception("Détail de l'erreur:")
         return jsonify({'message': f'Erreur lors de la création de l\'organisation: {str(e)}'}), 500
 
 @organization_bp.route('/api/organizations/<int:org_id>', methods=['PUT'])

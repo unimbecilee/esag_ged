@@ -31,64 +31,76 @@ import {
   FormControl,
   FormLabel,
   VStack,
+  AlertDialog,
+  AlertDialogBody,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogContent,
+  AlertDialogOverlay,
+  useDisclosure,
+  Avatar,
+  AvatarGroup,
+  IconButton,
+  Center,
+  Spinner,
 } from "@chakra-ui/react";
-import { FiSearch, FiUser, FiEdit2, FiTrash2, FiGitBranch, FiPlus, FiMoreVertical } from "react-icons/fi";
+import { FiSearch, FiUser, FiEdit2, FiTrash2, FiMoreVertical, FiUserPlus, FiXCircle, FiCheckCircle } from "react-icons/fi";
 import { ElementType } from "react";
 import config from "../config";
+import { useAsyncOperation } from '../hooks/useAsyncOperation';
+import { checkAuthToken } from "../utils/errorHandling";
+import { useNavigate } from "react-router-dom";
+import { useLoading } from "../contexts/LoadingContext";
+import RequireRole from './RequireRole';
+import { format } from 'date-fns';
 
 const API_URL = config.API_URL;
 
 interface User {
   id: number;
-  email: string;
   nom: string;
   prenom: string;
-  role: 'admin' | 'user';
+  email: string;
+  role: string;
   date_creation: string;
-  categorie?: string;
-  numero_tel?: string;
+  derniere_connexion: string | null;
 }
 
+const initialUserState: User = {
+  id: 0,
+  nom: '',
+  prenom: '',
+  email: '',
+  role: 'utilisateur',
+  date_creation: new Date().toISOString(),
+  derniere_connexion: null,
+};
+
+const ROLES = [
+  { value: 'admin', label: 'Administrateur' },
+  { value: 'chef_de_service', label: 'Chef de service' },
+  { value: 'validateur', label: 'Validateur/Approbateur' },
+  { value: 'utilisateur', label: 'Utilisateur standard' },
+  { value: 'archiviste', label: 'Archiviste' },
+];
+
 const Users: React.FC = () => {
+  const { isLoading, showLoading, hideLoading } = useLoading();
   const [users, setUsers] = useState<User[]>([]);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const { isOpen: isCreateOpen, onOpen: onCreateOpen, onClose: onCreateClose } = useDisclosure();
+  const { isOpen: isEditOpen, onOpen: onEditOpen, onClose: onEditClose } = useDisclosure();
+  const { isOpen: isDeleteOpen, onOpen: onDeleteOpen, onClose: onDeleteClose } = useDisclosure();
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [newUser, setNewUser] = useState<{
-    email: string;
-    nom: string;
-    prenom: string;
-    role: 'admin' | 'user';
-    categorie: string;
-    numero_tel: string;
-  }>({
-    email: "",
-    nom: "",
-    prenom: "",
-    role: "user",
-    categorie: "",
-    numero_tel: "",
-  });
-  const [editUser, setEditUser] = useState<{
-    email: string;
-    nom: string;
-    prenom: string;
-    role: 'admin' | 'user';
-    categorie: string;
-    numero_tel: string;
-  }>({
-    email: "",
-    nom: "",
-    prenom: "",
-    role: "user",
-    categorie: "",
-    numero_tel: "",
-  });
-  const [generatedPassword, setGeneratedPassword] = useState<string | null>(null);
+  const [newUser, setNewUser] = useState<User>(initialUserState);
+  const [editingUser, setEditingUser] = useState<User>(initialUserState);
+  const [replaceIfExists, setReplaceIfExists] = useState<boolean>(false);
   const toast = useToast();
+  const { executeOperation } = useAsyncOperation();
+  const navigate = useNavigate();
+  const [error, setError] = useState<string | null>(null);
+  const cancelRef = React.useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -96,279 +108,270 @@ const Users: React.FC = () => {
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem("token");
-      console.log("État de la connexion :", {
-        token: token ? "Présent" : "Absent",
-        tokenValue: token
-      });
-
+      showLoading("Chargement des utilisateurs...");
+      const token = localStorage.getItem('token');
       if (!token) {
-        toast({
-          title: "Erreur d'authentification",
-          description: "Vous devez être connecté pour accéder à cette page",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
+        navigate('/login');
         return;
       }
 
-      // Vérifier si le token est valide
-      try {
-        const checkResponse = await fetch(`${API_URL}/auth/me`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
-        });
-        
-        if (!checkResponse.ok) {
-          console.error("Token invalide ou expiré");
-          localStorage.removeItem("token");
-          toast({
-            title: "Session expirée",
-            description: "Veuillez vous reconnecter",
-            status: "error",
-            duration: 5000,
-            isClosable: true,
-          });
-          return;
-        }
-      } catch (error) {
-        console.error("Erreur lors de la vérification du token:", error);
-      }
-
       console.log("Tentative de récupération des utilisateurs...");
-      const response = await fetch(`${API_URL}/users`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
-      });
+      
+          const response = await fetch(`${API_URL}/users`, {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            credentials: 'include'
+          });
 
-      console.log("Réponse du serveur:", {
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries())
-      });
+      console.log("Réponse API /users:", response.status);
 
-      if (response.ok) {
-        const data = await response.json();
-        console.log("Données reçues:", data);
-        setUsers(data);
-      } else if (response.status === 403) {
-        const errorData = await response.json();
-        console.error("Erreur 403:", errorData);
-        toast({
-          title: "Accès refusé",
-          description: errorData.message || "Vous n'avez pas les droits d'administration nécessaires",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-      } else {
+          if (response.status === 401) {
+            localStorage.removeItem('token');
+            navigate('/login');
+            throw new Error('Session expirée, veuillez vous reconnecter');
+          }
+
+          if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error("Erreur détaillée:", errorData);
-        throw new Error(errorData.message || "Erreur lors de la récupération des utilisateurs");
+        console.error("Erreur API:", errorData);
+        throw new Error(errorData.message || 'Erreur lors de la récupération des utilisateurs');
       }
-    } catch (error) {
-      console.error("Erreur complète:", error);
+
+      const data = await response.json();
+      console.log("Utilisateurs récupérés:", data);
+      
+      // Mettre à jour l'état avec les utilisateurs récupérés
+      setUsers(data);
+      setError(null);
+      
+      // Masquer le chargement
+      hideLoading();
+      
+      return data;
+    } catch (err) {
+      console.error("Erreur lors de la récupération des utilisateurs:", err);
+      setError(err instanceof Error ? err.message : "Erreur de connexion au serveur");
       toast({
         title: "Erreur",
-        description: error instanceof Error ? error.message : "Impossible de charger les utilisateurs",
+        description: err instanceof Error ? err.message : "Erreur de connexion au serveur",
         status: "error",
         duration: 5000,
         isClosable: true,
       });
-    } finally {
-      setLoading(false);
+      hideLoading();
+      return null;
     }
   };
 
   const handleCreateUser = async () => {
-    try {
-      const response = await fetch(`${API_URL}/users`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify(newUser),
-      });
+    await executeOperation(
+      async () => {
+        const token = checkAuthToken();
+        const response = await fetch(`${API_URL}/users`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            ...newUser,
+            replace_if_exists: replaceIfExists
+          })
+        });
 
-      if (response.ok) {
+        if (!response.ok) {
+          const errorData = await response.json();
+          if (errorData.message?.includes('déjà utilisé') || errorData.message?.includes('already exists')) {
+            toast({
+              title: "Email déjà utilisé",
+              description: "Cet email est déjà associé à un compte existant. Activez l'option 'Remplacer si existe' pour écraser le compte existant.",
+              status: "error",
+              duration: 5000,
+              isClosable: true,
+            });
+            throw new Error("Cet email est déjà associé à un compte existant.");
+          }
+          throw new Error(errorData.message || 'Erreur lors de la création de l\'utilisateur');
+        }
+
         const data = await response.json();
-        setGeneratedPassword(data.password);
+        
+        // Ne plus stocker le mot de passe généré
+        // setGeneratedPassword(data.password);
+        
+        // Fermer le modal et réinitialiser le formulaire
+        onCreateClose();
+        setNewUser(initialUserState);
+        setReplaceIfExists(false);
+        
+        // Actualiser la liste des utilisateurs
+        await fetchUsers();
+        
+        // Afficher un message de succès
         toast({
-          title: "Succès",
-          description: "Utilisateur créé avec succès",
+          title: "Utilisateur créé",
+          description: `L'utilisateur ${newUser.prenom} ${newUser.nom} a été créé avec succès. Un email contenant les instructions de connexion a été envoyé.`,
           status: "success",
           duration: 5000,
           isClosable: true,
         });
-        setNewUser({
-          email: "",
-          nom: "",
-          prenom: "",
-          role: "user",
-          categorie: "",
-          numero_tel: "",
-        });
-        fetchUsers();
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Erreur lors de la création de l'utilisateur");
+      },
+      {
+        loadingMessage: "Création de l'utilisateur...",
+        successMessage: "Utilisateur créé avec succès",
+        errorMessage: "Impossible de créer l'utilisateur"
       }
-    } catch (error) {
-      toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Impossible de créer l'utilisateur",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-    }
+    );
   };
 
   const handleEdit = (userId: number) => {
     const user = users.find(u => u.id === userId);
     if (user) {
       setSelectedUser(user);
-      setEditUser({
-        email: user.email,
-        nom: user.nom,
-        prenom: user.prenom,
-        role: user.role,
-        categorie: user.categorie || "",
-        numero_tel: user.numero_tel || "",
-      });
-      setIsEditModalOpen(true);
+      setEditingUser(user);
+      onEditOpen();
     }
   };
 
   const handleUpdateUser = async () => {
-    try {
-      const response = await fetch(`${API_URL}/users/${selectedUser?.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify(editUser),
-      });
+    if (!selectedUser) return;
 
-      if (response.ok) {
-        toast({
-          title: "Succès",
-          description: "Utilisateur modifié avec succès",
-          status: "success",
-          duration: 5000,
-          isClosable: true,
+    await executeOperation(
+      async () => {
+        const token = checkAuthToken();
+        const response = await fetch(`${API_URL}/users/${selectedUser.id}`, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(editingUser)
         });
-        setIsEditModalOpen(false);
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Erreur lors de la mise à jour de l\'utilisateur');
+        }
+
+        await fetchUsers();
+        onEditClose();
         setSelectedUser(null);
-        setEditUser({
-          email: "",
-          nom: "",
-          prenom: "",
-          role: "user",
-          categorie: "",
-          numero_tel: "",
-        });
-        fetchUsers();
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Erreur lors de la modification");
+        setEditingUser(initialUserState);
+      },
+      {
+        loadingMessage: "Mise à jour de l'utilisateur...",
+        successMessage: "Utilisateur mis à jour avec succès",
+        errorMessage: "Impossible de mettre à jour l'utilisateur"
       }
-    } catch (error) {
-      toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Impossible de modifier l'utilisateur",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-    }
+    );
   };
 
   const handleDelete = async (userId: number) => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cet utilisateur ?")) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`${API_URL}/users/${userId}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
-
-      if (response.ok) {
-        toast({
-          title: "Succès",
-          description: "Utilisateur supprimé avec succès",
-          status: "success",
-          duration: 5000,
-          isClosable: true,
-        });
-        fetchUsers();
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Erreur lors de la suppression");
-      }
-    } catch (error) {
-      toast({
-        title: "Erreur",
-        description: error instanceof Error ? error.message : "Impossible de supprimer l'utilisateur",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
+    const user = users.find(u => u.id === userId);
+    if (user) {
+      setSelectedUser(user);
+      onDeleteOpen();
     }
   };
 
-  const handleWorkflow = (userId: number) => {
-    // Implémenter la logique de gestion des workflows
-    toast({
-      title: "Info",
-      description: "Fonctionnalité de gestion des workflows à implémenter",
-      status: "info",
-      duration: 5000,
-      isClosable: true,
-    });
+  const confirmDelete = async () => {
+    if (!selectedUser) return;
+
+    await executeOperation(
+      async () => {
+        const token = checkAuthToken();
+        const response = await fetch(`${API_URL}/users/${selectedUser.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Erreur lors de la suppression de l\'utilisateur');
+        }
+
+        await fetchUsers();
+        onDeleteClose();
+        setSelectedUser(null);
+      },
+      {
+        loadingMessage: "Suppression de l'utilisateur...",
+        successMessage: "Utilisateur supprimé avec succès",
+        errorMessage: "Impossible de supprimer l'utilisateur"
+      }
+    );
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('fr-FR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('fr-FR', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (error) {
+      return 'Invalid Date';
+    }
+  };
+
+  const getRoleInfo = (role: string | undefined | null) => {
+    const safeRole = (role || '').toLowerCase();
+    
+    // Trouver le rôle correspondant dans la liste des rôles
+    const roleInfo = ROLES.find(r => r.value.toLowerCase() === safeRole);
+    
+    return {
+      isAdmin: safeRole === 'admin',
+      displayName: roleInfo?.label || (safeRole === 'admin' ? 'Administrateur' : 'Utilisateur'),
+      colorScheme: 
+        safeRole === 'admin' ? 'red' :
+        safeRole === 'chef_de_service' ? 'purple' :
+        safeRole === 'validateur' ? 'orange' :
+        safeRole === 'archiviste' ? 'yellow' :
+        'blue'
+    };
+  };
+
+  const getFullName = (user: User) => {
+    const nom = user.nom || '';
+    const prenom = user.prenom || '';
+    return `${prenom} ${nom}`.trim() || 'N/A';
   };
 
   const filteredUsers = users.filter((user) => {
-    const matchesSearch =
-      user.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.prenom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = filterRole === "" || user.role.toLowerCase() === filterRole.toLowerCase();
+    const fullName = getFullName(user).toLowerCase();
+    const email = (user.email || '').toLowerCase();
+    const searchLower = searchTerm.toLowerCase();
+    const userRole = (user.role || '').toLowerCase();
+    const filterRoleLower = filterRole.toLowerCase();
+    
+    const matchesSearch = fullName.includes(searchLower) || email.includes(searchLower);
+    const matchesRole = filterRole === "" || userRole === filterRoleLower;
+    
     return matchesSearch && matchesRole;
   });
 
   return (
+    <RequireRole roles={["admin"]}>
     <Box>
       <Flex justify="space-between" align="center" mb={6}>
         <Heading color="white">Gestion des Utilisateurs</Heading>
         <Button
-          leftIcon={<Icon as={FiPlus as ElementType} />}
+          leftIcon={<Icon as={FiUserPlus as ElementType} />}
           colorScheme="blue"
-          onClick={() => setIsModalOpen(true)}
+            size="md"
+            fontWeight="bold"
+            px={6}
+            py={2}
+            borderRadius="lg"
+          onClick={onCreateOpen}
+            boxShadow="md"
         >
           Nouvel Utilisateur
         </Button>
@@ -407,128 +410,90 @@ const Users: React.FC = () => {
           }}
         >
           <option value="">Tous les rôles</option>
-          <option value="admin">Administrateur</option>
-          <option value="user">Utilisateur</option>
+            {ROLES.map(role => (
+              <option key={role.value} value={role.value}>{role.label}</option>
+            ))}
         </Select>
       </Flex>
 
-      {loading ? (
-        <Text color="white" textAlign="center">
-          Chargement...
-        </Text>
-      ) : filteredUsers.length === 0 ? (
-        <Box
-          bg="#20243a"
-          borderRadius="lg"
-          p={6}
-          textAlign="center"
-          color="white"
-        >
-          <Icon
-            as={FiUser as ElementType}
-            boxSize={8}
-            color="gray.400"
-            mb={2}
-          />
-          <Text>Aucun utilisateur trouvé</Text>
+      {error && (
+        <Box bg="#20243a" borderRadius="lg" p={6} mb={4}>
+          <Text color="red.400" textAlign="center">
+            {error}
+          </Text>
+          <Button
+            mt={4}
+            onClick={fetchUsers}
+            colorScheme="blue"
+            size="sm"
+            width="full"
+          >
+            Réessayer
+          </Button>
         </Box>
-      ) : (
-        <Box overflowX="auto">
-          <Table size={{ base: "sm", md: "md" }}>
+      )}
+
+        <Table variant="simple">
             <Thead>
               <Tr>
                 <Th>UTILISATEUR</Th>
                 <Th>EMAIL</Th>
                 <Th display={{ base: "none", md: "table-cell" }}>RÔLE</Th>
-                <Th display={{ base: "none", md: "table-cell" }}>CATÉGORIE</Th>
-                <Th display={{ base: "none", md: "table-cell" }}>TÉLÉPHONE</Th>
                 <Th>DATE DE CRÉATION</Th>
                 <Th>ACTIONS</Th>
               </Tr>
             </Thead>
             <Tbody>
-              {filteredUsers.map((user) => (
-                <Tr key={user.id}>
-                  <Td>
-                    <Flex align="center">
-                      <Icon
-                        as={FiUser as ElementType}
-                        color="#3a8bfd"
-                        mr={2}
-                      />
-                      <Text color="white">
-                        {user.prenom} {user.nom}
-                      </Text>
-                    </Flex>
-                  </Td>
-                  <Td color="white">{user.email}</Td>
-                  <Td>
-                    <Badge
-                      colorScheme={user.role.toLowerCase() === "admin" ? "red" : "blue"}
-                    >
-                      {user.role.toLowerCase() === "admin" ? "Administrateur" : "Utilisateur"}
-                    </Badge>
-                  </Td>
-                  <Td color="white">{user.categorie || "-"}</Td>
-                  <Td color="white">{user.numero_tel || "-"}</Td>
-                  <Td color="white">{formatDate(user.date_creation)}</Td>
-                  <Td>
-                    <Menu>
-                      <MenuButton
-                        as={Button}
-                        size="md"
-                        variant="ghost"
-                        colorScheme="blue"
-                        aria-label="Options"
-                        p={2}
-                        minW="40px"
-                        h="40px"
-                        borderRadius="md"
-                        _hover={{ bg: "#2d3250" }}
-                      >
-                        <Icon as={FiMoreVertical as ElementType} boxSize={5} color="#3a8bfd" />
-                      </MenuButton>
-                      <MenuList bg="#232946" borderColor="#20243a">
-                        <MenuItem 
-                          icon={<Icon as={FiEdit2 as ElementType} color="blue.400" />} 
-                          onClick={() => handleEdit(user.id)}
-                          _hover={{ bg: "#2d3250" }}
-                          _focus={{ bg: "#2d3250" }}
-                        >
-                          Modifier
-                        </MenuItem>
-                        <MenuItem 
-                          icon={<Icon as={FiGitBranch as ElementType} color="green.400" />} 
-                          onClick={() => handleWorkflow(user.id)}
-                          _hover={{ bg: "#2d3250" }}
-                          _focus={{ bg: "#2d3250" }}
-                        >
-                          Workflow
-                        </MenuItem>
-                        <MenuItem 
-                          icon={<Icon as={FiTrash2 as ElementType} color="red.400" />} 
-                          onClick={() => handleDelete(user.id)}
-                          _hover={{ bg: "#2d3250" }}
-                          _focus={{ bg: "#2d3250" }}
-                        >
-                          Supprimer
-                        </MenuItem>
-                      </MenuList>
-                    </Menu>
-                  </Td>
-                </Tr>
-              ))}
+            {isLoading ? (
+              <Tr><Td colSpan={7}><Center py={10}><Spinner size="lg" color="blue.400" /></Center></Td></Tr>
+            ) : filteredUsers.length === 0 ? (
+              <Tr><Td colSpan={7}><Center py={10}><Text color="gray.400">Aucun utilisateur trouvé</Text></Center></Td></Tr>
+            ) : (
+              filteredUsers.map((user) => {
+                const roleInfo = getRoleInfo(user.role);
+                return (
+                  <Tr key={user.id}>
+                    <Td>
+                      <Flex align="center" gap={3}>
+                        <Avatar size="sm" name={`${user.prenom} ${user.nom}`} />
+                        <Box>
+                          <Text fontWeight="bold" color="white">{user.prenom} {user.nom}</Text>
+                        </Box>
+                      </Flex>
+                    </Td>
+                    <Td color="white">{user.email || 'N/A'}</Td>
+                    <Td>
+                      <Badge colorScheme={
+                        user.role?.toLowerCase() === 'admin' ? 'red' :
+                        user.role?.toLowerCase() === 'chef_de_service' ? 'purple' :
+                        user.role?.toLowerCase() === 'validateur' ? 'orange' :
+                        user.role?.toLowerCase() === 'archiviste' ? 'yellow' :
+                        'blue'
+                      } fontWeight="bold" px={3} py={1} borderRadius="md" fontSize="sm">
+                        {ROLES.find(r => r.value.toLowerCase() === user.role?.toLowerCase())?.label || user.role}
+                      </Badge>
+                    </Td>
+                    <Td>{user.date_creation && user.date_creation !== 'Invalid Date' ? format(new Date(user.date_creation), 'dd/MM/yyyy') : '-'}</Td>
+                    <Td>
+                      <Menu>
+                        <MenuButton as={IconButton} icon={<Icon as={FiMoreVertical as ElementType} />} variant="ghost" colorScheme="blue" />
+                        <MenuList>
+                          <MenuItem icon={<Icon as={FiEdit2 as ElementType} />} onClick={() => handleEdit(user.id)}>Modifier</MenuItem>
+                          <MenuItem icon={<Icon as={FiTrash2 as ElementType} />} color="red.500" onClick={() => handleDelete(user.id)}>Supprimer</MenuItem>
+                        </MenuList>
+                      </Menu>
+                    </Td>
+                  </Tr>
+                );
+              })
+            )}
             </Tbody>
           </Table>
-        </Box>
-      )}
 
-      <Modal isOpen={isModalOpen} onClose={() => {
-        setIsModalOpen(false);
-        setGeneratedPassword(null);
-      }} size="xl">
+      {/* Modal de création d'utilisateur */}
+      <Modal isOpen={isCreateOpen} onClose={onCreateClose} size="lg">
         <ModalOverlay />
-        <ModalContent bg="#20243a" color="white">
+        <ModalContent bg="#232946" color="white">
           <ModalHeader>Nouvel Utilisateur</ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={6}>
@@ -538,121 +503,68 @@ const Users: React.FC = () => {
                 <Input
                   type="email"
                   value={newUser.email}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, email: e.target.value })
-                  }
-                  bg="#232946"
-                  borderColor="#232946"
-                  _hover={{ borderColor: "#3a8bfd" }}
-                  _focus={{
-                    borderColor: "#3a8bfd",
-                    boxShadow: "0 0 0 1.5px #3a8bfd",
-                  }}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                  bg="#20243a"
+                  borderColor="#20243a"
+                  _focus={{ borderColor: "#3a8bfd" }}
                 />
               </FormControl>
-              <FormControl isRequired>
-                <FormLabel>Nom</FormLabel>
-                <Input
-                  value={newUser.nom}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, nom: e.target.value })
-                  }
-                  bg="#232946"
-                  borderColor="#232946"
-                  _hover={{ borderColor: "#3a8bfd" }}
-                  _focus={{
-                    borderColor: "#3a8bfd",
-                    boxShadow: "0 0 0 1.5px #3a8bfd",
-                  }}
-                />
-              </FormControl>
+
               <FormControl isRequired>
                 <FormLabel>Prénom</FormLabel>
                 <Input
                   value={newUser.prenom}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, prenom: e.target.value })
-                  }
-                  bg="#232946"
-                  borderColor="#232946"
-                  _hover={{ borderColor: "#3a8bfd" }}
-                  _focus={{
-                    borderColor: "#3a8bfd",
-                    boxShadow: "0 0 0 1.5px #3a8bfd",
-                  }}
+                  onChange={(e) => setNewUser({ ...newUser, prenom: e.target.value })}
+                  bg="#20243a"
+                  borderColor="#20243a"
+                  _focus={{ borderColor: "#3a8bfd" }}
                 />
               </FormControl>
-              <FormControl>
-                <FormLabel>Catégorie</FormLabel>
+
+              <FormControl isRequired>
+                <FormLabel>Nom</FormLabel>
                 <Input
-                  value={newUser.categorie}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, categorie: e.target.value })
-                  }
-                  bg="#232946"
-                  borderColor="#232946"
-                  _hover={{ borderColor: "#3a8bfd" }}
-                  _focus={{
-                    borderColor: "#3a8bfd",
-                    boxShadow: "0 0 0 1.5px #3a8bfd",
-                  }}
+                  value={newUser.nom}
+                  onChange={(e) => setNewUser({ ...newUser, nom: e.target.value })}
+                  bg="#20243a"
+                  borderColor="#20243a"
+                  _focus={{ borderColor: "#3a8bfd" }}
                 />
               </FormControl>
-              <FormControl>
-                <FormLabel>Numéro de téléphone</FormLabel>
-                <Input
-                  value={newUser.numero_tel}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, numero_tel: e.target.value })
-                  }
-                  bg="#232946"
-                  borderColor="#232946"
-                  _hover={{ borderColor: "#3a8bfd" }}
-                  _focus={{
-                    borderColor: "#3a8bfd",
-                    boxShadow: "0 0 0 1.5px #3a8bfd",
-                  }}
-                />
-              </FormControl>
+
               <FormControl isRequired>
                 <FormLabel>Rôle</FormLabel>
                 <Select
                   value={newUser.role}
-                  onChange={(e) =>
-                    setNewUser({ ...newUser, role: e.target.value as 'admin' | 'user' })
-                  }
-                  bg="#232946"
-                  borderColor="#232946"
-                  _hover={{ borderColor: "#3a8bfd" }}
-                  _focus={{
-                    borderColor: "#3a8bfd",
-                    boxShadow: "0 0 0 1.5px #3a8bfd",
-                  }}
+                    onChange={e => setNewUser({ ...newUser, role: e.target.value })}
+                  bg="#20243a"
+                  borderColor="#20243a"
+                  _focus={{ borderColor: "#3a8bfd" }}
                 >
-                  <option value="user">Utilisateur</option>
-                  <option value="admin">Administrateur</option>
+                    {ROLES.map(role => (
+                      <option key={role.value} value={role.value}>{role.label}</option>
+                    ))}
                 </Select>
               </FormControl>
-              {generatedPassword && (
-                <Box
-                  p={4}
-                  bg="#232946"
-                  borderRadius="md"
-                  width="full"
-                  textAlign="center"
-                >
-                  <Text fontWeight="bold" mb={2}>Mot de passe généré :</Text>
-                  <Text color="#3a8bfd" fontSize="lg">{generatedPassword}</Text>
-                  <Text fontSize="sm" color="gray.400" mt={2}>
-                    Veuillez noter ce mot de passe, il ne sera plus affiché ultérieurement.
-                  </Text>
-                </Box>
-              )}
+
+                <FormControl display="flex" alignItems="center">
+                  <FormLabel htmlFor="replace-if-exists" mb="0">
+                    Remplacer si existe
+                  </FormLabel>
+                  <input
+                    id="replace-if-exists"
+                    type="checkbox"
+                    checked={replaceIfExists}
+                    onChange={(e) => setReplaceIfExists(e.target.checked)}
+                    style={{ marginLeft: '10px' }}
+                  />
+              </FormControl>
+
               <Button
                 colorScheme="blue"
-                width="full"
                 onClick={handleCreateUser}
-                mt={4}
+                width="full"
+                isLoading={isLoading}
               >
                 Créer l'utilisateur
               </Button>
@@ -661,9 +573,10 @@ const Users: React.FC = () => {
         </ModalContent>
       </Modal>
 
-      <Modal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} size="xl">
+      {/* Modal d'édition d'utilisateur */}
+      <Modal isOpen={isEditOpen} onClose={onEditClose} size="lg">
         <ModalOverlay />
-        <ModalContent bg="#20243a" color="white">
+        <ModalContent bg="#232946" color="white">
           <ModalHeader>Modifier l'utilisateur</ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={6}>
@@ -672,116 +585,101 @@ const Users: React.FC = () => {
                 <FormLabel>Email</FormLabel>
                 <Input
                   type="email"
-                  value={editUser.email}
-                  onChange={(e) =>
-                    setEditUser({ ...editUser, email: e.target.value })
-                  }
-                  bg="#232946"
-                  borderColor="#232946"
-                  _hover={{ borderColor: "#3a8bfd" }}
-                  _focus={{
-                    borderColor: "#3a8bfd",
-                    boxShadow: "0 0 0 1.5px #3a8bfd",
-                  }}
+                  value={editingUser.email}
+                  onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+                  bg="#20243a"
+                  borderColor="#20243a"
+                  _focus={{ borderColor: "#3a8bfd" }}
                 />
               </FormControl>
-              <FormControl isRequired>
-                <FormLabel>Nom</FormLabel>
-                <Input
-                  value={editUser.nom}
-                  onChange={(e) =>
-                    setEditUser({ ...editUser, nom: e.target.value })
-                  }
-                  bg="#232946"
-                  borderColor="#232946"
-                  _hover={{ borderColor: "#3a8bfd" }}
-                  _focus={{
-                    borderColor: "#3a8bfd",
-                    boxShadow: "0 0 0 1.5px #3a8bfd",
-                  }}
-                />
-              </FormControl>
+
               <FormControl isRequired>
                 <FormLabel>Prénom</FormLabel>
                 <Input
-                  value={editUser.prenom}
-                  onChange={(e) =>
-                    setEditUser({ ...editUser, prenom: e.target.value })
-                  }
-                  bg="#232946"
-                  borderColor="#232946"
-                  _hover={{ borderColor: "#3a8bfd" }}
-                  _focus={{
-                    borderColor: "#3a8bfd",
-                    boxShadow: "0 0 0 1.5px #3a8bfd",
-                  }}
+                  value={editingUser.prenom}
+                  onChange={(e) => setEditingUser({ ...editingUser, prenom: e.target.value })}
+                  bg="#20243a"
+                  borderColor="#20243a"
+                  _focus={{ borderColor: "#3a8bfd" }}
                 />
               </FormControl>
-              <FormControl>
-                <FormLabel>Catégorie</FormLabel>
+
+              <FormControl isRequired>
+                <FormLabel>Nom</FormLabel>
                 <Input
-                  value={editUser.categorie}
-                  onChange={(e) =>
-                    setEditUser({ ...editUser, categorie: e.target.value })
-                  }
-                  bg="#232946"
-                  borderColor="#232946"
-                  _hover={{ borderColor: "#3a8bfd" }}
-                  _focus={{
-                    borderColor: "#3a8bfd",
-                    boxShadow: "0 0 0 1.5px #3a8bfd",
-                  }}
+                  value={editingUser.nom}
+                  onChange={(e) => setEditingUser({ ...editingUser, nom: e.target.value })}
+                  bg="#20243a"
+                  borderColor="#20243a"
+                  _focus={{ borderColor: "#3a8bfd" }}
                 />
               </FormControl>
-              <FormControl>
-                <FormLabel>Numéro de téléphone</FormLabel>
-                <Input
-                  value={editUser.numero_tel}
-                  onChange={(e) =>
-                    setEditUser({ ...editUser, numero_tel: e.target.value })
-                  }
-                  bg="#232946"
-                  borderColor="#232946"
-                  _hover={{ borderColor: "#3a8bfd" }}
-                  _focus={{
-                    borderColor: "#3a8bfd",
-                    boxShadow: "0 0 0 1.5px #3a8bfd",
-                  }}
-                />
-              </FormControl>
+
               <FormControl isRequired>
                 <FormLabel>Rôle</FormLabel>
                 <Select
-                  value={editUser.role}
-                  onChange={(e) =>
-                    setEditUser({ ...editUser, role: e.target.value as 'admin' | 'user' })
-                  }
-                  bg="#232946"
-                  borderColor="#232946"
-                  _hover={{ borderColor: "#3a8bfd" }}
-                  _focus={{
-                    borderColor: "#3a8bfd",
-                    boxShadow: "0 0 0 1.5px #3a8bfd",
-                  }}
+                  value={editingUser.role}
+                  onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value })}
+                  bg="#20243a"
+                  borderColor="#20243a"
+                  _focus={{ borderColor: "#3a8bfd" }}
                 >
-                  <option value="user">Utilisateur</option>
-                  <option value="admin">Administrateur</option>
+                    {ROLES.map(role => (
+                      <option key={role.value} value={role.value}>{role.label}</option>
+                    ))}
                 </Select>
               </FormControl>
+
               <Button
                 colorScheme="blue"
-                width="full"
                 onClick={handleUpdateUser}
-                mt={4}
+                width="full"
+                isLoading={isLoading}
               >
-                Mettre à jour l'utilisateur
+                Mettre à jour
               </Button>
             </VStack>
           </ModalBody>
         </ModalContent>
       </Modal>
-    </Box>
+
+      {/* Dialog de confirmation de suppression */}
+      <AlertDialog
+        isOpen={isDeleteOpen}
+        leastDestructiveRef={cancelRef}
+        onClose={onDeleteClose}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent bg="#232946" color="white">
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Supprimer l'utilisateur
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              Êtes-vous sûr de vouloir supprimer l'utilisateur{" "}
+              <strong>{selectedUser ? getFullName(selectedUser) : ""}</strong> ?
+              Cette action est irréversible.
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRef} onClick={onDeleteClose}>
+                Annuler
+              </Button>
+              <Button
+                colorScheme="red"
+                onClick={confirmDelete}
+                ml={3}
+                isLoading={isLoading}
+              >
+                Supprimer
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+              </Box>
+    </RequireRole>
   );
 };
 
-export default Users; 
+export default Users;

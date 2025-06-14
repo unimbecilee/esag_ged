@@ -21,6 +21,9 @@ import {
 import { FiSearch, FiFileText, FiDownload, FiShare2, FiMoreVertical, FiEdit2 } from "react-icons/fi";
 import { ElementType } from "react";
 import ShareModal from "./ShareModal";
+import { useAsyncOperation } from '../hooks/useAsyncOperation';
+import { checkAuthToken } from '../utils/errorHandling';
+import { API_URL } from '../config';
 
 interface Document {
   id: number;
@@ -34,8 +37,9 @@ interface Document {
 }
 
 const Search: React.FC = () => {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [documents, setDocuments] = useState<Document[]>([]);
+  const { executeOperation } = useAsyncOperation();
+  const [searchResults, setSearchResults] = useState<Document[]>([]);
+  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<number | null>(null);
   const toast = useToast();
@@ -43,50 +47,44 @@ const Search: React.FC = () => {
   // Modal state
   const { isOpen: isShareOpen, onOpen: onShareOpen, onClose: onShareClose } = useDisclosure();
 
+  const handleSearch = async () => {
+    const results = await executeOperation(
+      async () => {
+        const token = checkAuthToken();
+        const response = await fetch(`${API_URL}/documents/search?q=${encodeURIComponent(searchTerm)}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Erreur lors de la recherche');
+        }
+
+        return await response.json();
+      },
+      {
+        loadingMessage: "Recherche en cours...",
+        errorMessage: "Impossible d'effectuer la recherche"
+      }
+    );
+
+    if (results) {
+      setSearchResults(results);
+    }
+  };
+
   useEffect(() => {
     const delayDebounceFn = setTimeout(() => {
       if (searchTerm.length >= 2) {
-        searchDocuments();
+        handleSearch();
       } else if (searchTerm.length === 0) {
-        setDocuments([]);
+        setSearchResults([]);
       }
     }, 500);
 
     return () => clearTimeout(delayDebounceFn);
   }, [searchTerm]);
-
-  const searchDocuments = async () => {
-    setLoading(true);
-    try {
-      const response = await fetch(
-        `http://localhost:5000/api/documents/search?q=${encodeURIComponent(
-          searchTerm
-        )}`,
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        setDocuments(data);
-      } else {
-        throw new Error("Erreur lors de la recherche");
-      }
-    } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Impossible de rechercher les documents",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleDownload = async (documentId: number) => {
     try {
@@ -166,7 +164,7 @@ const Search: React.FC = () => {
         </Text>
       ) : (
         <VStack spacing={4} align="stretch">
-          {documents.map((doc) => (
+          {searchResults.map((doc) => (
             <Box
               key={doc.id}
               bg="#20243a"
@@ -236,7 +234,7 @@ const Search: React.FC = () => {
               </Flex>
             </Box>
           ))}
-          {searchTerm.length >= 2 && documents.length === 0 && !loading && (
+          {searchTerm.length >= 2 && searchResults.length === 0 && !loading && (
             <Text color="white" textAlign="center">
               Aucun résultat trouvé
             </Text>
@@ -249,7 +247,7 @@ const Search: React.FC = () => {
         isOpen={isShareOpen}
         onClose={onShareClose}
         documentId={selectedDocument || 0}
-        onShareSuccess={searchDocuments}
+        onShareSuccess={handleSearch}
       />
     </Box>
   );

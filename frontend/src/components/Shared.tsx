@@ -2,49 +2,53 @@ import React, { useEffect, useState } from "react";
 import {
   Box,
   Heading,
-  VStack,
-  Text,
-  Button,
-  useToast,
-  Flex,
-  Icon,
-  Badge,
   Table,
   Thead,
   Tbody,
   Tr,
   Th,
   Td,
+  Button,
+  useToast,
+  Flex,
   Input,
   InputGroup,
   InputLeftElement,
+  Icon,
   Select,
+  Badge,
+  Text,
   Menu,
   MenuButton,
   MenuList,
   MenuItem,
 } from "@chakra-ui/react";
-import { FiSearch, FiFileText, FiDownload, FiShare2, FiMoreVertical, FiUser } from "react-icons/fi";
+import { FiSearch, FiDownload, FiShare2, FiMoreVertical, FiEye, FiFileText, FiUser, FiTrash2, FiEdit2 } from "react-icons/fi";
 import { ElementType } from "react";
+import { useAsyncOperation } from '../hooks/useAsyncOperation';
+import { checkAuthToken } from '../utils/errorHandling';
+import { API_URL } from '../config';
+import { asElementType } from '../utils/iconUtils';
+import { useLoading } from '../contexts/LoadingContext';
 
 interface SharedDocument {
   id: number;
-  titre: string;
+  document_id: number;
+  document_titre: string;
   type_document: string;
   date_partage: string;
-  proprietaire_nom: string;
-  proprietaire_prenom: string;
-  taille: number;
-  taille_formatee: string;
+  partage_par: string;
+  partage_avec: string;
   permissions: string[];
+  statut: string;
 }
 
 const Shared: React.FC = () => {
-  const [documents, setDocuments] = useState<SharedDocument[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { executeOperation } = useAsyncOperation();
+  const [sharedDocs, setSharedDocs] = useState<SharedDocument[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("");
-  const toast = useToast();
+  const { isLoading, showLoading, hideLoading } = useLoading();
 
   useEffect(() => {
     fetchSharedDocuments();
@@ -52,85 +56,110 @@ const Shared: React.FC = () => {
 
   const fetchSharedDocuments = async () => {
     try {
-      const response = await fetch("http://localhost:5000/api/documents/shared", {
+      showLoading("Chargement des documents partagés...");
+      const token = checkAuthToken();
+      const response = await fetch(`${API_URL}/documents/shared`, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+          'Authorization': `Bearer ${token}`
+        }
       });
-      if (response.ok) {
-        const data = await response.json();
-        setDocuments(data);
-      } else {
-        throw new Error("Erreur lors de la récupération des documents partagés");
+
+      if (!response.ok) {
+        throw new Error('Erreur lors de la récupération des documents partagés');
       }
+
+      const data = await response.json();
+      setSharedDocs(data);
     } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger les documents partagés",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
+      console.error("Erreur:", error);
     } finally {
-      setLoading(false);
+      hideLoading();
     }
   };
 
   const handleDownload = async (documentId: number) => {
-    try {
-      const response = await fetch(
-        `http://localhost:5000/api/documents/${documentId}/download`,
-        {
+    await executeOperation(
+      async () => {
+        const token = checkAuthToken();
+        const response = await fetch(`${API_URL}/documents/${documentId}/download`, {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-        }
-      );
+            'Authorization': `Bearer ${token}`
+          }
+        });
 
-      if (response.ok) {
+        if (!response.ok) {
+          throw new Error('Erreur lors du téléchargement');
+        }
+
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
-        const a = document.createElement("a");
+        const a = document.createElement('a');
         a.href = url;
         a.download = `document-${documentId}`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-      } else {
-        throw new Error("Erreur lors du téléchargement");
+      },
+      {
+        loadingMessage: "Téléchargement en cours...",
+        successMessage: "Document téléchargé avec succès",
+        errorMessage: "Impossible de télécharger le document"
       }
-    } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Impossible de télécharger le document",
-        status: "error",
-        duration: 5000,
-        isClosable: true,
-      });
-    }
+    );
   };
 
-  const handleShare = async (documentId: number) => {
-    // Implémenter la logique de partage
-    toast({
-      title: "Info",
-      description: "Fonctionnalité de partage à implémenter",
-      status: "info",
-      duration: 5000,
-      isClosable: true,
+  const handleRemoveShare = async (shareId: number) => {
+    await executeOperation(
+      async () => {
+        const token = checkAuthToken();
+        const response = await fetch(`${API_URL}/documents/shared/${shareId}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error('Erreur lors de la suppression du partage');
+        }
+
+        await fetchSharedDocuments();
+      },
+      {
+        loadingMessage: "Suppression du partage...",
+        successMessage: "Partage supprimé avec succès",
+        errorMessage: "Impossible de supprimer le partage"
+      }
+    );
+  };
+
+  const formatDate = (dateString: string): string => {
+    return new Date(dateString).toLocaleString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
-  const filteredDocuments = documents.filter((doc) => {
-    const matchesSearch =
-      doc.titre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      `${doc.proprietaire_prenom} ${doc.proprietaire_nom}`
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase());
-    const matchesType = filterType === "" || doc.type_document === filterType;
+  const filteredDocuments = sharedDocs.filter((doc) => {
+    const matchesSearch = doc.document_titre.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = filterType === "" || doc.type_document.toLowerCase() === filterType.toLowerCase();
     return matchesSearch && matchesType;
   });
+
+  // Get unique document types for filter
+  const documentTypes = Array.from(new Set(sharedDocs.map(doc => doc.type_document)));
+
+  if (sharedDocs.length === 0) {
+    return (
+      <Box textAlign="center" color="white">
+        <Text>Chargement...</Text>
+      </Box>
+    );
+  }
 
   return (
     <Box>
@@ -171,41 +200,27 @@ const Shared: React.FC = () => {
           }}
         >
           <option value="">Tous les types</option>
-          <option value="facture">Facture</option>
-          <option value="contrat">Contrat</option>
-          <option value="rapport">Rapport</option>
-          <option value="autre">Autre</option>
+          {documentTypes.map((type) => (
+            <option key={type} value={type}>
+              {type}
+            </option>
+          ))}
         </Select>
       </Flex>
 
-      {loading ? (
-        <Text color="white" textAlign="center">
-          Chargement...
-        </Text>
-      ) : filteredDocuments.length === 0 ? (
-        <Box
-          bg="#20243a"
-          borderRadius="lg"
-          p={6}
-          textAlign="center"
-          color="white"
-        >
-          <Icon
-            as={FiFileText as ElementType}
-            boxSize={8}
-            color="gray.400"
-            mb={2}
-          />
-          <Text>Aucun document partagé trouvé</Text>
-        </Box>
-      ) : (
-        <Box bg="#20243a" borderRadius="lg" p={6} overflowX="auto">
+      <Box bg="#20243a" borderRadius="lg" p={6} overflowX="auto">
+        {filteredDocuments.length === 0 ? (
+          <Text color="white" textAlign="center">
+            Aucun document partagé
+          </Text>
+        ) : (
           <Table variant="simple">
             <Thead>
               <Tr>
                 <Th color="white">Document</Th>
                 <Th color="white">Type</Th>
-                <Th color="white">Propriétaire</Th>
+                <Th color="white">Partagé par</Th>
+                <Th color="white">Partagé avec</Th>
                 <Th color="white">Date de partage</Th>
                 <Th color="white">Permissions</Th>
                 <Th color="white">Actions</Th>
@@ -216,12 +231,8 @@ const Shared: React.FC = () => {
                 <Tr key={doc.id}>
                   <Td>
                     <Flex align="center">
-                      <Icon
-                        as={FiFileText as ElementType}
-                        color="#3a8bfd"
-                        mr={2}
-                      />
-                      <Text color="white">{doc.titre}</Text>
+                      <Icon as={asElementType(FiFileText)} color="#3a8bfd" mr={2} />
+                      <Text color="white">{doc.document_titre}</Text>
                     </Flex>
                   </Td>
                   <Td>
@@ -229,72 +240,72 @@ const Shared: React.FC = () => {
                   </Td>
                   <Td>
                     <Flex align="center">
-                      <Icon
-                        as={FiUser as ElementType}
-                        color="gray.400"
-                        mr={2}
-                      />
-                      <Text color="white">
-                        {doc.proprietaire_prenom} {doc.proprietaire_nom}
-                      </Text>
+                      <Icon as={asElementType(FiUser)} mr={2} />
+                      <Text color="white">{doc.partage_par}</Text>
                     </Flex>
                   </Td>
-                  <Td color="white">
-                    {new Date(doc.date_partage).toLocaleDateString()}
+                  <Td>
+                    <Flex align="center">
+                      <Icon as={asElementType(FiUser)} mr={2} />
+                      <Text color="white">{doc.partage_avec}</Text>
+                    </Flex>
                   </Td>
+                  <Td color="white">{formatDate(doc.date_partage)}</Td>
                   <Td>
                     <Flex gap={2}>
-                      {doc.permissions.map((permission) => (
-                        <Badge
-                          key={permission}
-                          colorScheme={
-                            permission === "read" ? "green" : "blue"
-                          }
-                        >
+                      {doc.permissions.map((permission, index) => (
+                        <Badge key={index} colorScheme="green">
                           {permission}
                         </Badge>
                       ))}
                     </Flex>
                   </Td>
                   <Td>
-                    <Flex>
-                      <Button
+                    <Menu>
+                      <MenuButton
+                        as={Button}
                         size="sm"
-                        leftIcon={<Icon as={FiDownload as ElementType} />}
-                        colorScheme="blue"
                         variant="ghost"
-                        mr={2}
-                        onClick={() => handleDownload(doc.id)}
+                        colorScheme="blue"
                       >
-                        Télécharger
-                      </Button>
-                      <Menu>
-                        <MenuButton
-                          as={Button}
-                          size="sm"
-                          variant="ghost"
-                          colorScheme="blue"
+                        <Icon as={asElementType(FiMoreVertical)} />
+                      </MenuButton>
+                      <MenuList bg="#232946">
+                        <MenuItem
+                          icon={<Icon as={asElementType(FiDownload)} />}
+                          onClick={() => handleDownload(doc.document_id)}
+                          _hover={{ bg: "#20243a" }}
                         >
-                          <Icon as={FiMoreVertical as ElementType} />
-                        </MenuButton>
-                        <MenuList bg="#232946">
+                          Télécharger
+                        </MenuItem>
+                        {doc.permissions.includes("Édition") && (
                           <MenuItem
-                            icon={<Icon as={FiShare2 as ElementType} />}
-                            onClick={() => handleShare(doc.id)}
+                            icon={<Icon as={asElementType(FiEdit2)} />}
+                            onClick={() => {
+                              // Handle edit
+                            }}
                             _hover={{ bg: "#20243a" }}
                           >
-                            Partager
+                            Modifier
                           </MenuItem>
-                        </MenuList>
-                      </Menu>
-                    </Flex>
+                        )}
+                        <MenuItem
+                          icon={<Icon as={asElementType(FiTrash2)} />}
+                          onClick={() => handleRemoveShare(doc.id)}
+                          _hover={{ bg: "#20243a" }}
+                          color="red.400"
+                        >
+                          Supprimer le partage
+                        </MenuItem>
+                      </MenuList>
+                    </Menu>
                   </Td>
                 </Tr>
               ))}
             </Tbody>
           </Table>
-        </Box>
-      )}
+        )}
+      </Box>
     </Box>
   );
 };

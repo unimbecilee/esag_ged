@@ -1,9 +1,10 @@
-from flask import jsonify, request
-from AppFlask.api import api_bp
+from flask import Blueprint, jsonify, request
 from AppFlask.db import db_connection
 from .auth import token_required
 
-@api_bp.route('/trash', methods=['GET'])
+bp = Blueprint('api_trash', __name__)
+
+@bp.route('/trash', methods=['GET'])
 @token_required
 def get_trash(current_user):
     conn = db_connection()
@@ -29,7 +30,7 @@ def get_trash(current_user):
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
-@api_bp.route('/trash/<int:doc_id>/restore', methods=['POST'])
+@bp.route('/trash/<int:doc_id>/restore', methods=['POST'])
 @token_required
 def restore_document(current_user, doc_id):
     conn = db_connection()
@@ -50,7 +51,7 @@ def restore_document(current_user, doc_id):
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
-@api_bp.route('/trash/<int:doc_id>', methods=['DELETE'])
+@bp.route('/trash/<int:doc_id>', methods=['DELETE'])
 @token_required
 def delete_permanently(current_user, doc_id):
     conn = db_connection()

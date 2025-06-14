@@ -7,37 +7,88 @@
     <meta name="theme-color" content="#000000" />
     <meta
       name="description"
-      content="Web site created using create-react-app"
+      content="ESAG GED - Système de gestion électronique de documents"
     />
     <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
-    <!--
-      manifest.json provides metadata used when your web app is installed on a
-      user's mobile device or desktop. See https://developers.google.com/web/fundamentals/web-app-manifest/
-    -->
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    <!--
-      Notice the use of %PUBLIC_URL% in the tags above.
-      It will be replaced with the URL of the `public` folder during the build.
-      Only files inside the `public` folder can be referenced from the HTML.
-
-      Unlike "/favicon.ico" or "favicon.ico", "%PUBLIC_URL%/favicon.ico" will
-      work correctly both with client-side routing and a non-root public URL.
-      Learn how to configure a non-root public URL by running `npm run build`.
-    -->
-    <title>React App</title>
+    <title>ESAG GED</title>
+    
+    <!-- Styles pour forcer l'apparence sombre des menus -->
+    <style>
+      /* Force l'apparence sombre des menus Chakra UI */
+      .chakra-menu__menu-list,
+      [role="menu"] {
+        background-color: #1c2338 !important;
+        border: 1px solid #3a445e !important;
+        border-radius: 6px !important;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4) !important;
+        color: white !important;
+        z-index: 99999 !important;
+        position: absolute !important;
+        top: 100% !important;
+        right: 0 !important;
+        min-width: 150px !important;
+      }
+      
+      .chakra-menu__menu-item,
+      [role="menuitem"] {
+        background-color: transparent !important;
+        color: white !important;
+        padding: 8px 12px !important;
+      }
+      
+      .chakra-menu__menu-item:hover,
+      .chakra-menu__menu-item:focus,
+      .chakra-menu__menu-item[data-focus],
+      [role="menuitem"]:hover,
+      [role="menuitem"]:focus {
+        background-color: #2d3250 !important;
+        color: white !important;
+      }
+      
+      /* Force les portails */
+      .chakra-portal * {
+        color: white !important;
+      }
+      
+      /* Force tous les éléments avec data-popper-placement */
+      [data-popper-placement] {
+        background-color: #1c2338 !important;
+        border: 1px solid #3a445e !important;
+        border-radius: 6px !important;
+        z-index: 99999 !important;
+        position: absolute !important;
+      }
+      
+      /* Assure que les menus apparaissent au-dessus de tout */
+      .chakra-menu__menu-button {
+        z-index: 1000 !important;
+        position: relative !important;
+      }
+      
+      /* Force le contexte de stacking pour les menus */
+      .chakra-menu {
+        z-index: 1000 !important;
+        position: relative !important;
+      }
+      
+      /* Empêche les icônes d'avoir un z-index élevé */
+      .chakra-icon {
+        z-index: 1 !important;
+      }
+      
+      /* Force spécifiquement pour les cartes de documents */
+      .chakra-card .chakra-menu__menu-list {
+        z-index: 99999 !important;
+        position: absolute !important;
+        top: 32px !important;
+        right: 0 !important;
+        transform: none !important;
+      }
+    </style>
   </head>
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
-
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
-
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-    -->
   </body>
 </html>

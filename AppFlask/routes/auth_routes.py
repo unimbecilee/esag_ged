@@ -5,6 +5,11 @@ from flask_login import login_user, logout_user, login_required, current_user, U
 from psycopg2.extras import RealDictCursor
 import logging
 import traceback
+from AppFlask.api.auth import token_required
+from AppFlask.services.logging_service import logging_service
+import jwt
+import datetime
+from config import Config
 
 # Configuration du logging
 logging.basicConfig(level=logging.DEBUG)
@@ -72,109 +77,127 @@ def update_test_user():
 def login():
     if request.method == 'POST':
         try:
-            logger.info("=== Début de la tentative de connexion ===")
-            logger.info(f"Headers complets reçus : {dict(request.headers)}")
-            logger.info(f"Méthode de requête : {request.method}")
-            logger.info(f"Type de contenu : {request.content_type}")
-            
             # Récupération des données selon le format
             if request.is_json:
-                logger.info("Traitement d'une requête JSON")
                 data = request.get_json()
-                logger.info(f"Données JSON reçues : {data}")
                 email = data.get('email')
                 password = data.get('password')
             else:
-                logger.info("Traitement d'une requête form-data")
-                logger.info(f"Données form reçues : {dict(request.form)}")
                 email = request.form.get('email')
                 password = request.form.get('password')
-            
-            logger.info(f"Email reçu : {email}")
-            logger.info(f"Mot de passe reçu : {'*' * len(password) if password else 'Non fourni'}")
 
             if not email or not password:
-                logger.warning("Données manquantes dans la requête")
+                logging_service.log_event(
+                    level='WARNING',
+                    event_type='LOGIN_ATTEMPT',
+                    message='Tentative de connexion avec des données manquantes',
+                    additional_data={'email': email}
+                )
                 return jsonify({'message': 'Email et mot de passe requis'}), 400
 
             conn = db_connection()
             if conn is None:
-                logger.error("Échec de la connexion à la base de données")
+                logging_service.log_event(
+                    level='ERROR',
+                    event_type='SYSTEM_ERROR',
+                    message='Échec de connexion à la base de données lors de la tentative de connexion'
+                )
                 return jsonify({'message': 'Erreur de connexion à la base de données'}), 500
 
-            try:
-                cursor = conn.cursor(cursor_factory=RealDictCursor)
-                logger.info(f"Recherche de l'utilisateur avec l'email : {email}")
-                cursor.execute("SELECT * FROM Utilisateur WHERE email = %s", (email,))
-                user = cursor.fetchone()
-                
-                if user:
-                    logger.info("Utilisateur trouvé dans la base de données")
-                    logger.info(f"Données utilisateur : {user}")
-                    
-                    # Vérification du mot de passe
-                    logger.info("Tentative de vérification du mot de passe")
-                    password_check = check_password_hash(user['mot_de_passe'], password)
-                    logger.info(f"Résultat de la vérification du mot de passe : {password_check}")
-                    
-                    if password_check:
-                        logger.info("Authentification réussie - Création de la session")
-                        user_obj = User(
-                            id=user['id'],
-                            nom=user['nom'],
-                            prenom=user['prenom'],
-                            email=user['email'],
-                            role=user['role']
-                        )
-                        login_user(user_obj)
-                        session['user_id'] = user['id']
-                        session['user_role'] = user['role']
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT id, email, password, nom, prenom, role FROM utilisateur WHERE email = %s",
+                (email,)
+            )
+            user = cursor.fetchone()
 
-                        response_data = {
-                            'message': 'Connexion réussie',
-                            'user': {
-                                'id': user['id'],
-                                'nom': user['nom'],
-                                'prenom': user['prenom'],
-                                'email': user['email'],
-                                'role': user['role']
-                            }
+            if user and check_password_hash(user[2], password):
+                # Création du token JWT
+                token = jwt.encode({
+                    'user_id': user[0],
+                    'email': user[1],
+                    'role': user[5],
+                    'exp': datetime.datetime.utcnow() + datetime.timedelta(days=1)
+                }, Config.SECRET_KEY)
+
+                # Log de la connexion réussie
+                logger.info(f"Attempting to log LOGIN_SUCCESS for user_id: {user[0]}")
+                try:
+                    logging_service.log_event(
+                        level='INFO',
+                        event_type='LOGIN_SUCCESS',
+                        user_id=user[0],
+                        message=f"Connexion réussie pour {user[3]} {user[4]}",
+                        additional_data={
+                            'email': user[1],
+                            'role': user[5]
                         }
-                        logger.info(f"Envoi de la réponse de succès : {response_data}")
-                        return jsonify(response_data), 200
-                    else:
-                        logger.warning("Échec de l'authentification - Mot de passe incorrect")
-                        return jsonify({'message': 'Email ou mot de passe incorrect'}), 401
-                else:
-                    logger.warning(f"Aucun utilisateur trouvé avec l'email : {email}")
-                    return jsonify({'message': 'Email ou mot de passe incorrect'}), 401
+                    )
+                    logger.info(f"Call to logging_service.log_event for LOGIN_SUCCESS completed for user_id: {user[0]}")
+                except Exception as e_log:
+                    logger.error(f"Exception during logging_service.log_event for LOGIN_SUCCESS: {str(e_log)}")
+                    logger.error(f"Traceback: {traceback.format_exc()}")
 
-            except Exception as e:
-                logger.error(f"Erreur SQL : {str(e)}")
-                logger.error(f"Traceback complet : {traceback.format_exc()}")
-                return jsonify({'message': 'Une erreur est survenue lors de la connexion'}), 500
-            finally:
-                cursor.close()
-                conn.close()
-                logger.info("Connexion à la base de données fermée")
+                return jsonify({
+                    'token': token,
+                    'user': {
+                        'id': user[0],
+                        'email': user[1],
+                        'nom': user[3],
+                        'prenom': user[4],
+                        'role': user[5]
+                    }
+                })
+            else:
+                # Log de la tentative échouée
+                logging_service.log_event(
+                    level='WARNING',
+                    event_type='LOGIN_FAILED',
+                    message='Tentative de connexion échouée',
+                    additional_data={'email': email}
+                )
+                return jsonify({'message': 'Email ou mot de passe incorrect'}), 401
 
         except Exception as e:
-            logger.error(f"Erreur générale : {str(e)}")
-            logger.error(f"Traceback complet : {traceback.format_exc()}")
-            return jsonify({'message': 'Une erreur inattendue est survenue'}), 500
+            logger.error(f"Erreur lors de la connexion: {str(e)}")
+            logging_service.log_event(
+                level='ERROR',
+                event_type='SYSTEM_ERROR',
+                message=f"Erreur lors de la tentative de connexion: {str(e)}"
+            )
+            return jsonify({'message': 'Une erreur est survenue'}), 500
 
-    # Pour les requêtes GET, retourner le template HTML
+        finally:
+            if 'cursor' in locals():
+                cursor.close()
+            if 'conn' in locals():
+                conn.close()
+
     return render_template('login.html')
 
 
 # Déconnexion
 @auth_bp.route('/logout')
-@login_required
-def logout():
-    logout_user()
-    session.clear()
-    flash('Déconnexion réussie', 'success')
-    return redirect(url_for('auth.login'))
+@token_required
+def logout(current_user):
+    try:
+        # Log de la déconnexion
+        logging_service.log_event(
+            level='INFO',
+            event_type='LOGOUT',
+            user_id=current_user['id'],
+            message=f"Déconnexion de l'utilisateur {current_user['nom']} {current_user['prenom']}"
+        )
+        return jsonify({'message': 'Déconnexion réussie'})
+    except Exception as e:
+        logger.error(f"Erreur lors de la déconnexion: {str(e)}")
+        logging_service.log_event(
+            level='ERROR',
+            event_type='SYSTEM_ERROR',
+            message=f"Erreur lors de la déconnexion: {str(e)}",
+            user_id=current_user['id']
+        )
+        return jsonify({'message': 'Une erreur est survenue lors de la déconnexion'}), 500
 
 
 # Compte utilisateur

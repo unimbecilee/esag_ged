@@ -10,6 +10,7 @@ const api = axios.create({
 
 // Intercepteur pour injecter le token dynamiquement
 api.interceptors.request.use(config => {
+  console.log('API Request:', config.method?.toUpperCase(), config.url);
   const token = localStorage.getItem('token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -19,9 +20,19 @@ api.interceptors.request.use(config => {
 
 // Intercepteur pour gérer les erreurs globales
 api.interceptors.response.use(
-  response => response,
+  response => {
+    console.log('API Response success:', response.status, response.config.url);
+    return response;
+  },
   error => {
+    console.error('API Response error:', 
+      error.response?.status || 'No status', 
+      error.response?.config?.url || 'No URL',
+      error.message
+    );
+    
     if (error.response?.status === 401) {
+      console.warn('Unauthorized access detected, clearing token');
       localStorage.removeItem('token');
       window.location.reload();
     }

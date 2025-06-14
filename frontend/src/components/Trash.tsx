@@ -2,12 +2,10 @@ import React, { useEffect, useState } from "react";
 import {
   Box,
   Heading,
-  VStack,
   Text,
   Button,
   useToast,
   Flex,
-  Icon,
   Badge,
   Table,
   Thead,
@@ -15,103 +13,134 @@ import {
   Tr,
   Th,
   Td,
-  Tooltip,
+  Input,
+  InputGroup,
+  InputLeftElement,
   Select,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalBody,
-  ModalCloseButton,
-  ModalFooter,
-  Grid,
-  GridItem,
-  Stack,
-  Divider,
+  Spinner,
+  HStack,
+  VStack,
+  IconButton,
+  Card,
+  CardBody,
+  SimpleGrid,
+  Stat,
+  StatLabel,
+  StatNumber,
+  StatHelpText,
+  useColorModeValue,
+  Container,
+  Alert,
+  AlertIcon,
+  AlertTitle,
+  AlertDescription,
+  TableContainer,
+  ButtonGroup,
 } from "@chakra-ui/react";
-import { FiTrash2, FiRefreshCw, FiFileText, FiBriefcase, FiRotateCcw, FiEye } from "react-icons/fi";
-import { ElementType } from "react";
+import { SearchIcon, DeleteIcon, RepeatIcon } from "@chakra-ui/icons";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import config from "../config";
+import RequireRole from './RequireRole';
 
 interface TrashItem {
   id: number;
   item_id: number;
   item_type: string;
-  item_data: any;
+  title: string;
+  description?: string;
+  size: number;
+  size_bytes: number;
   deleted_at: string;
+  deleted_by: number;
   deleted_by_name: string;
+  days_until_deletion: number;
+}
+
+interface TrashStats {
+  total_items: number;
+  pending_deletion: number;
+  restored_items: number;
+  permanently_deleted: number;
+  total_size_formatted: string;
 }
 
 const Trash: React.FC = () => {
   const [items, setItems] = useState<TrashItem[]>([]);
-  const [filteredItems, setFilteredItems] = useState<TrashItem[]>([]);
+  const [stats, setStats] = useState<TrashStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [selectedType, setSelectedType] = useState<string>("all");
-  const [selectedItem, setSelectedItem] = useState<TrashItem | null>(null);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState("all");
+  const [error, setError] = useState<string | null>(null);
+
   const toast = useToast();
+  const bgColor = useColorModeValue("white", "#1a202c");
+  const borderColor = useColorModeValue("gray.200", "gray.600");
+  const textColor = useColorModeValue("gray.800", "white");
+  const mutedColor = useColorModeValue("gray.600", "gray.400");
+  const cardBg = useColorModeValue("gray.50", "#2d3748");
 
-  useEffect(() => {
-    fetchTrashItems();
-  }, []);
-
-  useEffect(() => {
-    filterItems();
-  }, [selectedType, items]);
-
-  const filterItems = () => {
-    if (selectedType === "all") {
-      setFilteredItems(items);
-    } else {
-      setFilteredItems(items.filter(item => item.item_type === selectedType));
-    }
-  };
+  const getAuthToken = () => localStorage.getItem("token");
 
   const fetchTrashItems = async () => {
-    console.log("Début de la récupération des éléments de la corbeille");
+    setLoading(true);
+    setError(null);
+
     try {
-      const token = localStorage.getItem("token");
+      const token = getAuthToken();
+      console.log("🔍 [DEBUG] Token récupéré:", token ? "Présent" : "Manquant");
+      
       if (!token) {
-        console.error("Token d'authentification non trouvé");
-        toast({
-          title: "Erreur d'authentification",
-          description: "Veuillez vous reconnecter",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-        return;
+        throw new Error("Token d'authentification manquant");
       }
 
-      console.log("Envoi de la requête vers /api/trash");
-      const response = await fetch("http://localhost:5000/api/trash", {
+      console.log("🔍 [DEBUG] Appel API trash avec token:", token.substring(0, 20) + "...");
+
+      const response = await fetch(`${config.API_URL}/trash`, {
+        method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
+        mode: "cors",
       });
 
-      console.log("Statut de la réponse:", response.status);
-      if (response.ok) {
-        const data = await response.json();
-        console.log(`${data.length} éléments récupérés de la corbeille`);
+      console.log("🔍 [DEBUG] Réponse API:", {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries())
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("🔍 [DEBUG] Erreur API:", errorText);
+        throw new Error(`Erreur ${response.status}: ${response.statusText} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log("🔍 [DEBUG] Données reçues:", data);
+
+      // Gérer différents formats de réponse
+      if (Array.isArray(data)) {
+        console.log("🔍 [DEBUG] Format: tableau");
         setItems(data);
-      } else if (response.status === 401) {
-        console.error("Session expirée ou invalide");
-        toast({
-          title: "Session expirée",
-          description: "Veuillez vous reconnecter",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
+        console.log("🔍 [DEBUG] Items définis (array):", data.length);
+      } else if (data.items && Array.isArray(data.items)) {
+        console.log("🔍 [DEBUG] Format: objet avec tableau items");
+        setItems(data.items);
+        console.log("🔍 [DEBUG] Items définis (object):", data.items.length);
       } else {
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+        console.log("🔍 [DEBUG] Format: inconnu", data);
+        setItems([]);
+        console.log("🔍 [DEBUG] Aucun item trouvé");
       }
     } catch (error) {
-      console.error("Erreur lors de la récupération des éléments:", error);
+      console.error("🔍 [DEBUG] Erreur complète:", error);
+      setError("Impossible de charger les éléments de la corbeille");
+      
       toast({
         title: "Erreur",
-        description: "Impossible de charger les éléments supprimés",
+        description: "Impossible de charger les éléments de la corbeille",
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -121,58 +150,60 @@ const Trash: React.FC = () => {
     }
   };
 
-  const handleRestore = async (trashId: number) => {
-    console.log(`Tentative de restauration de l'élément ${trashId}`);
+  const fetchStats = async () => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        console.error("Token d'authentification non trouvé");
-        toast({
-          title: "Erreur d'authentification",
-          description: "Veuillez vous reconnecter",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-        return;
-      }
+      const token = getAuthToken();
+      if (!token) return;
 
-      const response = await fetch(
-        `http://localhost:5000/api/trash/${trashId}/restore`,
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      const response = await fetch(`${config.API_URL}/trash/stats`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        mode: "cors",
+      });
 
-      console.log("Statut de la restauration:", response.status);
       if (response.ok) {
-        console.log(`Élément ${trashId} restauré avec succès`);
-        toast({
-          title: "Succès",
-          description: "Élément restauré avec succès",
-          status: "success",
-          duration: 5000,
-          isClosable: true,
-        });
-        fetchTrashItems();
-      } else if (response.status === 401) {
-        console.error("Session expirée ou invalide");
-        toast({
-          title: "Session expirée",
-          description: "Veuillez vous reconnecter",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-      } else {
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+        const data = await response.json();
+        setStats(data);
+        console.log("Stats chargées:", data);
       }
     } catch (error) {
-      console.error("Erreur lors de la restauration:", error);
+      console.error("Erreur stats:", error);
+    }
+  };
+
+  const restoreItem = async (itemId: number) => {
+    try {
+      const token = getAuthToken();
+      if (!token) throw new Error("Token manquant");
+
+      const response = await fetch(`${config.API_URL}/trash/${itemId}/restore`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        mode: "cors",
+      });
+
+      if (!response.ok) {
+        throw new Error("Erreur lors de la restauration");
+      }
+
+      toast({
+        title: "Succès",
+        description: "Élément restauré avec succès",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
+
+      fetchTrashItems();
+      fetchStats();
+    } catch (error) {
+      console.error("Erreur restauration:", error);
       toast({
         title: "Erreur",
         description: "Impossible de restaurer l'élément",
@@ -183,61 +214,39 @@ const Trash: React.FC = () => {
     }
   };
 
-  const handleDeletePermanently = async (trashId: number) => {
-    console.log(`Tentative de suppression définitive de l'élément ${trashId}`);
+  const deleteItem = async (itemId: number) => {
     try {
-      const token = localStorage.getItem("token");
-      if (!token) {
-        console.error("Token d'authentification non trouvé");
-        toast({
-          title: "Erreur d'authentification",
-          description: "Veuillez vous reconnecter",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-        return;
+      const token = getAuthToken();
+      if (!token) throw new Error("Token manquant");
+
+      const response = await fetch(`${config.API_URL}/trash/${itemId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        mode: "cors",
+      });
+
+      if (!response.ok) {
+        throw new Error("Erreur lors de la suppression");
       }
 
-      const response = await fetch(
-        `http://localhost:5000/api/trash/${trashId}`,
-        {
-          method: "DELETE",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      toast({
+        title: "Succès",
+        description: "Élément supprimé définitivement",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+      });
 
-      console.log("Statut de la suppression:", response.status);
-      if (response.ok) {
-        console.log(`Élément ${trashId} supprimé définitivement`);
-        toast({
-          title: "Succès",
-          description: "Élément supprimé définitivement",
-          status: "success",
-          duration: 5000,
-          isClosable: true,
-        });
-        fetchTrashItems();
-      } else if (response.status === 401) {
-        console.error("Session expirée ou invalide");
-        toast({
-          title: "Session expirée",
-          description: "Veuillez vous reconnecter",
-          status: "error",
-          duration: 5000,
-          isClosable: true,
-        });
-      } else {
-        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
-      }
+      fetchTrashItems();
+      fetchStats();
     } catch (error) {
-      console.error("Erreur lors de la suppression définitive:", error);
+      console.error("Erreur suppression:", error);
       toast({
         title: "Erreur",
-        description: "Impossible de supprimer définitivement l'élément",
+        description: "Impossible de supprimer l'élément",
         status: "error",
         duration: 5000,
         isClosable: true,
@@ -245,324 +254,224 @@ const Trash: React.FC = () => {
     }
   };
 
-  const getItemIcon = (itemType: string) => {
-    switch (itemType) {
-      case 'document':
-        return FiFileText;
-      case 'organisation':
-        return FiBriefcase;
-      default:
-        return FiFileText;
-    }
+  const formatFileSize = (bytes: number): string => {
+    if (bytes === 0) return "0 B";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
-  const getItemName = (item: TrashItem) => {
-    switch (item.item_type) {
-      case 'document':
-        return item.item_data.titre || 'Document sans titre';
-      case 'organisation':
-        return item.item_data.nom || 'Organisation sans nom';
-      default:
-        return 'Élément inconnu';
-    }
+  const getUrgencyColor = (daysUntilDeletion: number) => {
+    if (daysUntilDeletion <= 7) return "red";
+    if (daysUntilDeletion <= 14) return "orange";
+    return "green";
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('fr-FR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+  useEffect(() => {
+    console.log("Chargement initial de la corbeille");
+    fetchTrashItems();
+    fetchStats();
+  }, []);
 
-  const handleViewDetails = (item: TrashItem) => {
-    setSelectedItem(item);
-    setIsDetailModalOpen(true);
-  };
+  const filteredItems = items.filter(item => {
+    const matchesSearch = item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (item.description && item.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesType = filterType === "all" || item.item_type === filterType;
+    return matchesSearch && matchesType;
+  });
 
-  const renderDetailContent = (item: TrashItem) => {
-    if (!item) return null;
-
-    switch (item.item_type) {
-      case 'document':
-        return (
-          <Grid templateColumns="1fr 2fr" gap={4}>
-            <GridItem>
-              <Text color="gray.400">Titre</Text>
-            </GridItem>
-            <GridItem>
-              <Text color="white">{item.item_data.titre || 'Sans titre'}</Text>
-            </GridItem>
-            <GridItem>
-              <Text color="gray.400">Type</Text>
-            </GridItem>
-            <GridItem>
-              <Text color="white">{item.item_data.type_document || '-'}</Text>
-            </GridItem>
-            <GridItem>
-              <Text color="gray.400">Description</Text>
-            </GridItem>
-            <GridItem>
-              <Text color="white">{item.item_data.description || '-'}</Text>
-            </GridItem>
-            <GridItem>
-              <Text color="gray.400">Taille</Text>
-            </GridItem>
-            <GridItem>
-              <Text color="white">{item.item_data.taille ? `${(item.item_data.taille / 1024).toFixed(2)} KB` : '-'}</Text>
-            </GridItem>
-          </Grid>
-        );
-
-      case 'organisation':
-        return (
-          <Grid templateColumns="1fr 2fr" gap={4}>
-            <GridItem>
-              <Text color="gray.400">Nom</Text>
-            </GridItem>
-            <GridItem>
-              <Text color="white">{item.item_data.nom || 'Sans nom'}</Text>
-            </GridItem>
-            <GridItem>
-              <Text color="gray.400">Description</Text>
-            </GridItem>
-            <GridItem>
-              <Text color="white">{item.item_data.description || '-'}</Text>
-            </GridItem>
-            <GridItem>
-              <Text color="gray.400">Adresse</Text>
-            </GridItem>
-            <GridItem>
-              <Text color="white">{item.item_data.adresse || '-'}</Text>
-            </GridItem>
-            <GridItem>
-              <Text color="gray.400">Email</Text>
-            </GridItem>
-            <GridItem>
-              <Text color="white">{item.item_data.email_contact || '-'}</Text>
-            </GridItem>
-            <GridItem>
-              <Text color="gray.400">Téléphone</Text>
-            </GridItem>
-            <GridItem>
-              <Text color="white">{item.item_data.telephone_contact || '-'}</Text>
-            </GridItem>
-            <GridItem>
-              <Text color="gray.400">Statut</Text>
-            </GridItem>
-            <GridItem>
-              <Badge colorScheme={item.item_data.statut === 'ACTIVE' ? 'green' : 'red'}>
-                {item.item_data.statut || '-'}
-              </Badge>
-            </GridItem>
-          </Grid>
-        );
-
-      default:
-        return <Text color="white">Détails non disponibles</Text>;
-    }
-  };
+  if (loading) {
+    return (
+      <Container maxW="7xl" py={8}>
+        <VStack spacing={6}>
+          <Spinner size="xl" color="blue.500" />
+          <Text color="white">Chargement de la corbeille...</Text>
+        </VStack>
+      </Container>
+    );
+  }
 
   return (
-    <Box>
-      <Flex justify="space-between" align="center" mb={6}>
-        <Heading color="white" size="lg">
-          Corbeille
-        </Heading>
-        <Flex gap={4}>
-          <Select
-            value={selectedType}
-            onChange={(e) => setSelectedType(e.target.value)}
-            bg="#20243a"
-            color="white"
-            width="200px"
-          >
-            <option value="all">Tous les éléments</option>
-            <option value="document">Documents</option>
-            <option value="organisation">Organisations</option>
-          </Select>
-          <Button
-            leftIcon={<Icon as={FiRefreshCw as ElementType} />}
-            onClick={fetchTrashItems}
-            isLoading={loading}
-            colorScheme="blue"
-            variant="ghost"
-          >
-            Actualiser
-          </Button>
+    <RequireRole roles={["admin", "archiviste"]}>
+    <Container maxW="7xl" py={8}>
+      <VStack spacing={6} align="stretch">
+        {/* En-tête */}
+        <Flex justify="space-between" align="center">
+          <VStack align="start" spacing={1}>
+            <Heading size="lg" color="white">
+              🗑️ Corbeille
+            </Heading>
+            <Text color="gray.300">
+              Gérez les éléments supprimés de votre système
+            </Text>
+          </VStack>
+          <HStack spacing={2}>
+            <IconButton
+              aria-label="Actualiser"
+              icon={<RepeatIcon />}
+              onClick={fetchTrashItems}
+              variant="outline"
+              borderColor="gray.600"
+              color="white"
+              _hover={{ bg: "gray.700" }}
+            />
+          </HStack>
         </Flex>
-      </Flex>
 
-      {loading ? (
-        <Text color="white" textAlign="center">
-          Chargement...
-        </Text>
-      ) : filteredItems.length === 0 ? (
-        <Box
-          bg="#20243a"
-          borderRadius="lg"
-          p={6}
-          textAlign="center"
-          color="white"
-        >
-          <Icon
-            as={FiTrash2 as ElementType}
-            boxSize={8}
-            color="gray.400"
-            mb={2}
-          />
-          <Text>
-            {selectedType === "all" 
-              ? "La corbeille est vide" 
-              : `Aucun élément de type ${selectedType === "document" ? "document" : "organisation"} dans la corbeille`}
-          </Text>
-        </Box>
-      ) : (
-        <Box bg="#20243a" borderRadius="lg" p={6} overflowX="auto">
-          <Table variant="simple">
-            <Thead>
-              <Tr>
-                <Th color="white">Élément</Th>
-                <Th color="white">Type</Th>
-                <Th color="white">Supprimé par</Th>
-                <Th color="white">Date de suppression</Th>
-                <Th color="white">Actions</Th>
-              </Tr>
-            </Thead>
-            <Tbody>
-              {filteredItems.map((item) => (
-                <Tr key={item.id}>
-                  <Td>
-                    <Flex align="center">
-                      <Icon
-                        as={getItemIcon(item.item_type) as ElementType}
-                        color="#3a8bfd"
-                        mr={2}
-                      />
-                      <Text color="white">{getItemName(item)}</Text>
-                    </Flex>
-                  </Td>
-                  <Td>
-                    <Badge colorScheme={item.item_type === 'document' ? 'blue' : 'purple'}>
-                      {item.item_type === 'document' ? 'Document' : 'Organisation'}
-                    </Badge>
-                  </Td>
-                  <Td color="white">{item.deleted_by_name}</Td>
-                  <Td color="white">{formatDate(item.deleted_at)}</Td>
-                  <Td>
-                    <Flex>
-                      <Tooltip label="Voir les détails">
-                        <Button
-                          size="sm"
-                          leftIcon={<Icon as={FiEye as ElementType} />}
-                          colorScheme="gray"
-                          variant="ghost"
-                          mr={2}
-                          onClick={() => handleViewDetails(item)}
-                        >
-                          Détails
-                        </Button>
-                      </Tooltip>
-                      <Tooltip label="Restaurer">
-                        <Button
-                          size="sm"
-                          leftIcon={<Icon as={FiRotateCcw as ElementType} />}
-                          colorScheme="blue"
-                          variant="ghost"
-                          mr={2}
-                          onClick={() => handleRestore(item.id)}
-                        >
-                          Restaurer
-                        </Button>
-                      </Tooltip>
-                      <Tooltip label="Supprimer définitivement">
-                        <Button
-                          size="sm"
-                          leftIcon={<Icon as={FiTrash2 as ElementType} />}
-                          colorScheme="red"
-                          variant="ghost"
-                          onClick={() => handleDeletePermanently(item.id)}
-                        >
-                          Supprimer
-                        </Button>
-                      </Tooltip>
-                    </Flex>
-                  </Td>
-                </Tr>
-              ))}
-            </Tbody>
-          </Table>
-        </Box>
-      )}
-
-      {/* Modal de détails */}
-      <Modal isOpen={isDetailModalOpen} onClose={() => setIsDetailModalOpen(false)} size="xl">
-        <ModalOverlay />
-        <ModalContent bg="#1a1f37">
-          <ModalHeader color="white">
-            <Flex align="center" gap={2}>
-              <Icon as={getItemIcon(selectedItem?.item_type || '') as ElementType} />
-              <Text>Détails de l'élément</Text>
+        {/* Filtres et recherche */}
+        <Card bg="gray.700">
+          <CardBody>
+            <Flex direction={{ base: "column", md: "row" }} gap={4}>
+              <InputGroup flex={2}>
+                <InputLeftElement>
+                  <SearchIcon color="gray.400" />
+                </InputLeftElement>
+                <Input
+                  placeholder="Rechercher dans la corbeille..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  bg="gray.800"
+                  borderColor="gray.600"
+                  color="white"
+                  _placeholder={{ color: "gray.400" }}
+                />
+              </InputGroup>
+              <Select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                maxW="200px"
+                bg="gray.800"
+                borderColor="gray.600"
+                color="white"
+              >
+                <option value="all">Tous les types</option>
+                <option value="document">Documents</option>
+                <option value="folder">Dossiers</option>
+              </Select>
             </Flex>
-          </ModalHeader>
-          <ModalCloseButton color="white" />
-          <ModalBody>
-            {selectedItem && (
-              <VStack spacing={6} align="stretch">
-                {renderDetailContent(selectedItem)}
-                <Divider />
-                <Stack spacing={2}>
-                  <Text color="gray.400">Informations de suppression</Text>
-                  <Grid templateColumns="1fr 2fr" gap={4}>
-                    <GridItem>
-                      <Text color="gray.400">Supprimé par</Text>
-                    </GridItem>
-                    <GridItem>
-                      <Text color="white">{selectedItem.deleted_by_name}</Text>
-                    </GridItem>
-                    <GridItem>
-                      <Text color="gray.400">Date de suppression</Text>
-                    </GridItem>
-                    <GridItem>
-                      <Text color="white">{formatDate(selectedItem.deleted_at)}</Text>
-                    </GridItem>
-                  </Grid>
-                </Stack>
+          </CardBody>
+        </Card>
+
+        {/* Message d'erreur */}
+        {error && (
+          <Alert status="error">
+            <AlertIcon />
+            <AlertTitle>Erreur!</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+
+        {/* Liste des éléments */}
+        {filteredItems.length === 0 ? (
+          <Card bg="gray.700">
+            <CardBody>
+              <VStack spacing={4} py={8}>
+                <DeleteIcon boxSize={12} color="gray.400" />
+                <Text fontSize="lg" color="gray.300">
+                  {items.length === 0 ? "La corbeille est vide" : "Aucun élément trouvé"}
+                </Text>
+                <Text color="gray.400" textAlign="center">
+                  {items.length === 0 
+                    ? "Les éléments supprimés apparaîtront ici."
+                    : "Essayez de modifier vos critères de recherche."
+                  }
+                </Text>
+                {items.length === 0 && (
+                  <Text fontSize="sm" color="orange.300">
+                    Nombre d'éléments chargés: {items.length}
+                  </Text>
+                )}
               </VStack>
-            )}
-          </ModalBody>
-          <ModalFooter>
-            <Button
-              colorScheme="blue"
-              mr={3}
-              leftIcon={<Icon as={FiRotateCcw as ElementType} />}
-              onClick={() => {
-                if (selectedItem) {
-                  handleRestore(selectedItem.id);
-                  setIsDetailModalOpen(false);
-                }
-              }}
-            >
-              Restaurer
-            </Button>
-            <Button
-              colorScheme="red"
-              leftIcon={<Icon as={FiTrash2 as ElementType} />}
-              onClick={() => {
-                if (selectedItem) {
-                  handleDeletePermanently(selectedItem.id);
-                  setIsDetailModalOpen(false);
-                }
-              }}
-            >
-              Supprimer définitivement
-            </Button>
-          </ModalFooter>
-        </ModalContent>
-      </Modal>
-    </Box>
+            </CardBody>
+          </Card>
+        ) : (
+          <Card bg="gray.700">
+            <CardBody p={0}>
+              <TableContainer>
+                <Table variant="simple">
+                  <Thead>
+                    <Tr>
+                      <Th color="gray.300">Élément</Th>
+                      <Th color="gray.300">Type</Th>
+                      <Th color="gray.300">Taille</Th>
+                      <Th color="gray.300">Supprimé par</Th>
+                      <Th color="gray.300">Supprimé le</Th>
+                      <Th color="gray.300">Expiration</Th>
+                      <Th color="gray.300">Actions</Th>
+                    </Tr>
+                  </Thead>
+                  <Tbody>
+                    {filteredItems.map((item) => (
+                      <Tr key={item.id} _hover={{ bg: "gray.600" }}>
+                        <Td>
+                          <VStack align="start" spacing={0}>
+                            <Text fontWeight="medium" noOfLines={1} color="white">
+                              {item.title}
+                            </Text>
+                            {item.description && (
+                              <Text fontSize="sm" color="gray.400" noOfLines={1}>
+                                {item.description}
+                              </Text>
+                            )}
+                          </VStack>
+                        </Td>
+                        <Td>
+                          <Badge colorScheme={item.item_type === "document" ? "blue" : "green"}>
+                            {item.item_type === "document" ? "Document" : "Dossier"}
+                          </Badge>
+                        </Td>
+                        <Td>
+                          <Text fontSize="sm" color="gray.300">
+                            {formatFileSize(item.size_bytes || item.size || 0)}
+                          </Text>
+                        </Td>
+                        <Td>
+                          <Text fontSize="sm" color="gray.300">{item.deleted_by_name}</Text>
+                        </Td>
+                        <Td>
+                          <Text fontSize="sm" color="gray.300">
+                            {format(new Date(item.deleted_at), "dd/MM/yyyy HH:mm", { locale: fr })}
+                          </Text>
+                        </Td>
+                        <Td>
+                          <Badge colorScheme={getUrgencyColor(item.days_until_deletion)}>
+                            {item.days_until_deletion} jours
+                          </Badge>
+                        </Td>
+                        <Td>
+                          <ButtonGroup size="sm">
+                            <Button
+                              leftIcon={<RepeatIcon />}
+                              colorScheme="green"
+                              variant="outline"
+                              onClick={() => restoreItem(item.id)}
+                              size="xs"
+                            >
+                              Restaurer
+                            </Button>
+                            <Button
+                              leftIcon={<DeleteIcon />}
+                              colorScheme="red"
+                              variant="outline"
+                              onClick={() => deleteItem(item.id)}
+                              size="xs"
+                            >
+                              Supprimer
+                            </Button>
+                          </ButtonGroup>
+                        </Td>
+                      </Tr>
+                    ))}
+                  </Tbody>
+                </Table>
+              </TableContainer>
+            </CardBody>
+          </Card>
+        )}
+      </VStack>
+    </Container>
+    </RequireRole>
   );
 };
 

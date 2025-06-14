@@ -13,25 +13,31 @@ import {
   Select,
   useToast,
   VStack,
+  Text,
+  Box,
 } from '@chakra-ui/react';
+import { API_URL } from '../config';
+import { useAsyncOperation } from '../hooks/useAsyncOperation';
 
 interface User {
   id: number;
   nom: string;
   prenom: string;
+  username: string;
+  email: string;
 }
 
 interface ShareModalProps {
   isOpen: boolean;
   onClose: () => void;
-  documentId: number;
-  onShareSuccess: () => void;
+  documentId?: number | null;
+  onShareSuccess?: () => void;
 }
 
 const ShareModal: React.FC<ShareModalProps> = ({
   isOpen,
   onClose,
-  documentId,
+  documentId = null,
   onShareSuccess,
 }) => {
   const [users, setUsers] = useState<User[]>([]);
@@ -39,14 +45,18 @@ const ShareModal: React.FC<ShareModalProps> = ({
   const [permissions, setPermissions] = useState('lecture');
   const [loading, setLoading] = useState(false);
   const toast = useToast();
+  const { executeOperation } = useAsyncOperation();
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    if (isOpen) {
+      fetchUsers();
+      setSelectedUser(''); // Réinitialiser la sélection à chaque ouverture
+    }
+  }, [isOpen]);
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/users', {
+      const response = await fetch(`${API_URL}/users/sharing`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`,
         },
@@ -54,6 +64,8 @@ const ShareModal: React.FC<ShareModalProps> = ({
       if (response.ok) {
         const data = await response.json();
         setUsers(data);
+      } else {
+        throw new Error('Erreur lors de la récupération des utilisateurs');
       }
     } catch (error) {
       toast({
@@ -67,6 +79,17 @@ const ShareModal: React.FC<ShareModalProps> = ({
   };
 
   const handleShare = async () => {
+    if (!documentId) {
+      toast({
+        title: 'Erreur',
+        description: 'Aucun document sélectionné',
+        status: 'error',
+        duration: 5000,
+        isClosable: true,
+      });
+      return;
+    }
+
     if (!selectedUser) {
       toast({
         title: 'Erreur',
@@ -80,40 +103,48 @@ const ShareModal: React.FC<ShareModalProps> = ({
 
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/documents/share', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({
-          document_id: documentId,
-          utilisateur_id: selectedUser,
-          permissions: permissions,
-        }),
-      });
+      const success = await executeOperation(
+        async () => {
+          const token = localStorage.getItem('token');
+          if (!token) {
+            throw new Error('Token non trouvé');
+          }
+          
+          const response = await fetch(`${API_URL}/documents/share`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+              document_id: documentId,
+              utilisateur_id: parseInt(selectedUser),
+              permissions: permissions,
+            }),
+          });
 
-      if (response.ok) {
-        toast({
-          title: 'Succès',
-          description: 'Document partagé avec succès',
-          status: 'success',
-          duration: 5000,
-          isClosable: true,
-        });
-        onShareSuccess();
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => null);
+            throw new Error(errorData?.message || 'Erreur lors du partage');
+          }
+          
+          return true;
+        },
+        {
+          loadingMessage: "Partage en cours...",
+          successMessage: "Document partagé avec succès",
+          errorMessage: "Impossible de partager le document"
+        }
+      );
+      
+      if (success) {
+        onShareSuccess?.();
         onClose();
-      } else {
-        throw new Error('Erreur lors du partage');
+        setSelectedUser('');
       }
     } catch (error) {
-      toast({
-        title: 'Erreur',
-        description: 'Impossible de partager le document',
-        status: 'error',
-        duration: 5000,
-        isClosable: true,
-      });
+      // L'erreur est déjà gérée par executeOperation
+      console.error("Erreur de partage:", error);
     } finally {
       setLoading(false);
     }
@@ -127,47 +158,57 @@ const ShareModal: React.FC<ShareModalProps> = ({
         <ModalCloseButton color="white" />
         <ModalBody>
           <VStack spacing={4}>
-            <FormControl>
-              <FormLabel color="white">Utilisateur</FormLabel>
-              <Select
-                value={selectedUser}
-                onChange={(e) => setSelectedUser(e.target.value)}
-                bg="#232946"
-                color="white"
-                borderColor="#232946"
-                _hover={{ borderColor: "#3a8bfd" }}
-                _focus={{
-                  borderColor: "#3a8bfd",
-                  boxShadow: "0 0 0 1.5px #3a8bfd",
-                }}
-              >
-                <option value="">Sélectionner un utilisateur</option>
-                {users.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.prenom} {user.nom}
-                  </option>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl>
-              <FormLabel color="white">Permissions</FormLabel>
-              <Select
-                value={permissions}
-                onChange={(e) => setPermissions(e.target.value)}
-                bg="#232946"
-                color="white"
-                borderColor="#232946"
-                _hover={{ borderColor: "#3a8bfd" }}
-                _focus={{
-                  borderColor: "#3a8bfd",
-                  boxShadow: "0 0 0 1.5px #3a8bfd",
-                }}
-              >
-                <option value="lecture">Lecture seule</option>
-                <option value="edition">Édition</option>
-                <option value="admin">Administration</option>
-              </Select>
-            </FormControl>
+            {users.length === 0 ? (
+              <Box p={4} bg="#232946" borderRadius="md" width="full">
+                <Text color="white" textAlign="center">
+                  Chargement des utilisateurs...
+                </Text>
+              </Box>
+            ) : (
+              <>
+                <FormControl>
+                  <FormLabel color="white">Utilisateur</FormLabel>
+                  <Select
+                    value={selectedUser}
+                    onChange={(e) => setSelectedUser(e.target.value)}
+                    bg="#232946"
+                    color="white"
+                    borderColor="#232946"
+                    _hover={{ borderColor: "#3a8bfd" }}
+                    _focus={{
+                      borderColor: "#3a8bfd",
+                      boxShadow: "0 0 0 1.5px #3a8bfd",
+                    }}
+                  >
+                    <option value="">Sélectionner un utilisateur</option>
+                    {users.map((user) => (
+                      <option key={user.id} value={user.id}>
+                        {user.prenom || user.username} {user.nom || user.email}
+                      </option>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl>
+                  <FormLabel color="white">Permissions</FormLabel>
+                  <Select
+                    value={permissions}
+                    onChange={(e) => setPermissions(e.target.value)}
+                    bg="#232946"
+                    color="white"
+                    borderColor="#232946"
+                    _hover={{ borderColor: "#3a8bfd" }}
+                    _focus={{
+                      borderColor: "#3a8bfd",
+                      boxShadow: "0 0 0 1.5px #3a8bfd",
+                    }}
+                  >
+                    <option value="lecture">Lecture seule</option>
+                    <option value="edition">Édition</option>
+                    <option value="admin">Administration</option>
+                  </Select>
+                </FormControl>
+              </>
+            )}
           </VStack>
         </ModalBody>
 
@@ -185,6 +226,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
             colorScheme="blue"
             onClick={handleShare}
             isLoading={loading}
+            isDisabled={users.length === 0 || !selectedUser}
           >
             Partager
           </Button>

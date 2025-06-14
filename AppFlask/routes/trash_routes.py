@@ -6,6 +6,7 @@ import os
 import logging
 from psycopg2.extras import RealDictCursor
 from AppFlask.routes.history_routes import log_action
+import json
 
 # Configuration du logging
 logger = logging.getLogger(__name__)
@@ -19,12 +20,26 @@ def view_trash():
         conn = db_connection()
         cursor = conn.cursor(dictionary=True)
         query = """
-            SELECT c.id AS corbeille_id, d.id AS document_id, d.titre, d.description, c.date_suppression
-            FROM Corbeille c
-            JOIN Document d ON c.document_id = d.id
+            SELECT t.id AS trash_id, t.item_id, t.item_type, t.item_data, t.deleted_at
+            FROM trash t
+            WHERE t.restored_at IS NULL AND t.permanent_delete_at IS NULL
+            AND t.item_type = 'document'
         """
         cursor.execute(query)
         trash_docs = cursor.fetchall()
+        
+        # Transformer les données JSON en attributs pour la compatibilité avec le template
+        for doc in trash_docs:
+            if 'item_data' in doc and doc['item_data']:
+                item_data = doc['item_data']
+                if isinstance(item_data, str):
+                    item_data = json.loads(item_data)
+                doc['titre'] = item_data.get('titre', 'Sans titre')
+                doc['description'] = item_data.get('description', '')
+                doc['date_suppression'] = doc['deleted_at']
+                doc['document_id'] = doc['item_id']
+                doc['corbeille_id'] = doc['trash_id']
+        
         cursor.close()
         conn.close()
 
@@ -40,8 +55,13 @@ def restore_document(doc_id):
         conn = db_connection()
         cursor = conn.cursor()
 
-        # Supprimer le document de la corbeille
-        cursor.execute("DELETE FROM Corbeille WHERE document_id = %s", (doc_id,))
+        # Marquer le document comme restauré dans la table trash
+        cursor.execute("""
+            UPDATE trash 
+            SET restored_at = CURRENT_TIMESTAMP,
+                restored_by = %s
+            WHERE item_id = %s AND item_type = 'document' AND restored_at IS NULL
+        """, (request.form.get('user_id', 1), doc_id))
         conn.commit()
 
         flash('Document restauré avec succès')
@@ -60,18 +80,32 @@ def delete_permanently(doc_id):
         conn = db_connection()
         cursor = conn.cursor(dictionary=True)
 
-        # Récupérer le fichier avant suppression
-        cursor.execute("SELECT fichier FROM Document WHERE id = %s", (doc_id,))
-        document = cursor.fetchone()
+        # Récupérer les informations du document dans la corbeille
+        cursor.execute("""
+            SELECT item_data 
+            FROM trash 
+            WHERE item_id = %s AND item_type = 'document' AND restored_at IS NULL
+        """, (doc_id,))
+        trash_item = cursor.fetchone()
 
-        if document:
-            file_path = os.path.join('uploads', document['fichier'])
-            if os.path.exists(file_path):
-                os.remove(file_path)
+        if trash_item and trash_item['item_data']:
+            item_data = trash_item['item_data']
+            if isinstance(item_data, str):
+                item_data = json.loads(item_data)
+                
+            # Supprimer le fichier physique si présent
+            if 'fichier' in item_data:
+                file_path = os.path.join('uploads', item_data['fichier'])
+                if os.path.exists(file_path):
+                    os.remove(file_path)
 
-            # Supprimer le document de la corbeille et de la table Document
-            cursor.execute("DELETE FROM Corbeille WHERE document_id = %s", (doc_id,))
-            cursor.execute("DELETE FROM Document WHERE id = %s", (doc_id,))
+            # Marquer comme supprimé définitivement
+            cursor.execute("""
+                UPDATE trash 
+                SET permanent_delete_at = CURRENT_TIMESTAMP,
+                    permanent_delete_by = %s
+                WHERE item_id = %s AND item_type = 'document' AND restored_at IS NULL
+            """, (request.form.get('user_id', 1), doc_id))
             conn.commit()
 
             flash('Document supprimé définitivement')

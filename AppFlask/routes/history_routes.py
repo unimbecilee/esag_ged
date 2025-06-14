@@ -12,12 +12,12 @@ logger = logging.getLogger(__name__)
 history_bp = Blueprint('history', __name__)
 
 # Gestionnaire pour les requêtes OPTIONS
-@history_bp.route('/api/history', methods=['OPTIONS'])
-@history_bp.route('/api/history/stats', methods=['OPTIONS'])
+@history_bp.route('/', methods=['OPTIONS'])
+@history_bp.route('/stats', methods=['OPTIONS'])
 def handle_history_options():
     return '', 200
 
-@history_bp.route('/api/history', methods=['GET'])
+@history_bp.route('/', methods=['GET'])
 @token_required
 def get_history(current_user):
     conn = None
@@ -37,7 +37,7 @@ def get_history(current_user):
                    f"entity_type={entity_type}, start_date={start_date}, end_date={end_date}, "
                    f"user_id={user_id}, search={search}")
 
-        # Construction de la requête de base
+        # Construction de la requête pour combiner les vraies données d'historique
         query = """
             SELECT 
                 h.id,
@@ -52,29 +52,80 @@ def get_history(current_user):
             FROM history h
             LEFT JOIN utilisateur u ON h.user_id = u.id
             WHERE 1=1
+            
+            UNION ALL
+            
+            SELECT 
+                hb.id + 1000 as id,
+                UPPER(hb.action) as action_type,
+                'document' as entity_type,
+                hb.document_id as entity_id,
+                d.titre as entity_name,
+                CASE 
+                    WHEN hb.action = 'upload' THEN 'Document uploadé'
+                    WHEN hb.action = 'download' THEN 'Document téléchargé'
+                    WHEN hb.action = 'view' THEN 'Document consulté'
+                    WHEN hb.action = 'share' THEN 'Document partagé'
+                    WHEN hb.action = 'delete' THEN 'Document supprimé'
+                    ELSE hb.action
+                END as description,
+                NULL as metadata,
+                hb.date_action as created_at,
+                CONCAT(u.prenom, ' ', u.nom) as user_name
+            FROM historique_backup hb
+            LEFT JOIN utilisateur u ON hb.utilisateur_id = u.id
+            LEFT JOIN document d ON hb.document_id = d.id
+            WHERE 1=1
+            
+            UNION ALL
+            
+            SELECT 
+                sl.id + 2000 as id,
+                sl.event_type as action_type,
+                'system' as entity_type,
+                sl.user_id as entity_id,
+                CASE 
+                    WHEN sl.user_id IS NOT NULL THEN CONCAT(u.prenom, ' ', u.nom)
+                    ELSE 'Système'
+                END as entity_name,
+                sl.message as description,
+                sl.additional_data as metadata,
+                sl.timestamp as created_at,
+                CASE 
+                    WHEN sl.user_id IS NOT NULL THEN CONCAT(u.prenom, ' ', u.nom)
+                    ELSE 'Système'
+                END as user_name
+            FROM system_logs sl
+            LEFT JOIN utilisateur u ON sl.user_id = u.id
+            WHERE 1=1
         """
         params = []
 
+        # Envelopper la requête UNION dans une sous-requête pour les filtres
+        base_query = f"SELECT * FROM ({query}) AS combined_history WHERE 1=1"
+        
         # Ajout des filtres
         if action_type:
-            query += " AND h.action_type = %s"
+            base_query += " AND action_type = %s"
             params.append(action_type)
         if entity_type:
-            query += " AND h.entity_type = %s"
+            base_query += " AND entity_type = %s"
             params.append(entity_type)
         if start_date:
-            query += " AND DATE(h.created_at) >= %s"
+            base_query += " AND DATE(created_at) >= %s"
             params.append(start_date)
         if end_date:
-            query += " AND DATE(h.created_at) <= %s"
+            base_query += " AND DATE(created_at) <= %s"
             params.append(end_date)
         if user_id:
-            query += " AND h.user_id = %s"
+            base_query += " AND entity_id = %s"
             params.append(user_id)
         if search:
-            query += " AND (h.entity_name ILIKE %s OR h.description ILIKE %s)"
+            base_query += " AND (entity_name ILIKE %s OR description ILIKE %s)"
             search_pattern = f"%{search}%"
             params.extend([search_pattern, search_pattern])
+        
+        query = base_query
 
         logger.info(f"Requête SQL construite: {query}")
         logger.info(f"Paramètres SQL: {params}")
@@ -90,7 +141,7 @@ def get_history(current_user):
         total_count = count_result['total'] if count_result else 0
 
         # Ajouter la pagination
-        query += " ORDER BY h.created_at DESC LIMIT %s OFFSET %s"
+        query += " ORDER BY created_at DESC LIMIT %s OFFSET %s"
         offset = (page - 1) * per_page
         params.extend([per_page, offset])
 
@@ -134,7 +185,7 @@ def get_history(current_user):
             conn.close()
             logger.info("Connexion à la base de données fermée")
 
-@history_bp.route('/api/history/stats', methods=['GET'])
+@history_bp.route('/stats', methods=['GET'])
 @token_required
 def get_history_stats(current_user):
     try:
@@ -176,7 +227,7 @@ def get_history_stats(current_user):
         logger.error(f"Erreur lors de la récupération des statistiques: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@history_bp.route('/api/history/check', methods=['GET'])
+@history_bp.route('/check', methods=['GET'])
 @token_required
 def check_history_table(current_user):
     try:
@@ -218,7 +269,7 @@ def check_history_table(current_user):
         if conn:
             conn.close()
 
-@history_bp.route('/api/history/migrate', methods=['POST'])
+@history_bp.route('/migrate', methods=['POST'])
 @token_required
 def migrate_history(current_user):
     """

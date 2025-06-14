@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Box,
   VStack,
@@ -7,11 +7,16 @@ import {
   Flex,
   Button,
   useColorModeValue,
+  Menu,
+  MenuButton,
+  MenuList,
+  MenuItem,
+  Collapse,
+  Divider,
 } from "@chakra-ui/react";
 import {
   FiHome,
   FiUsers,
-  FiFileText,
   FiSearch,
   FiTrash2,
   FiFolder,
@@ -21,10 +26,22 @@ import {
   FiGitBranch,
   FiBriefcase,
   FiLogOut,
+  FiChevronDown,
+  FiChevronRight,
+  FiHeart,
+  FiStar,
 } from "react-icons/fi";
 import { IconType } from "react-icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { ElementType } from "react";
+import config from '../config';
+import { useAuth } from '../contexts/AuthContext';
+import {
+  canManageUsers,
+  canManageOrganizations,
+  canManageWorkflows,
+  canSeeAllArchives,
+} from '../utils/permissions';
 
 interface NavItemProps {
   icon: IconType;
@@ -45,70 +62,204 @@ const NavItem: React.FC<NavItemProps> = ({ icon, children, to, isActive }) => {
       px={6}
       py={4}
       bg={isActive ? "#3a8bfd" : "transparent"}
-      color={isActive ? "white" : "gray.400"}
+      color={isActive ? "white" : "gray.300"}
       _hover={{
-        bg: isActive ? "#3a8bfd" : "rgba(58, 139, 253, 0.1)",
-        color: isActive ? "white" : "white",
+        bg: isActive ? "#4a95fd" : "rgba(58, 139, 253, 0.15)",
+        color: "white",
+        transform: "translateX(3px)",
       }}
       onClick={() => navigate(to)}
       transition="all 0.2s"
       fontSize="md"
       h="auto"
+      borderRadius="lg"
+      fontWeight={isActive ? "bold" : "medium"}
+      boxShadow={isActive ? "0 0 0 1px rgba(255,255,255,0.2)" : "none"}
     >
       <Icon as={icon as ElementType} boxSize={6} mr={4} />
-      <Text fontWeight={isActive ? "bold" : "normal"}>
+      <Text>
         {children}
       </Text>
     </Button>
   );
 };
 
+interface NavItemWithSubmenuProps {
+  icon: IconType;
+  label: string;
+  isActive: boolean;
+  subItems: { label: string; path: string; icon?: IconType }[];
+}
+
+const NavItemWithSubmenu: React.FC<NavItemWithSubmenuProps> = ({
+  icon,
+  label,
+  isActive,
+  subItems,
+}) => {
+  const [isOpen, setIsOpen] = useState(isActive);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  return (
+    <Box>
+      <Button
+        w="full"
+        variant="ghost"
+        justifyContent="space-between"
+        alignItems="center"
+        px={6}
+        py={4}
+        bg={isActive ? "#3a8bfd" : "transparent"}
+        color={isActive ? "white" : "gray.300"}
+        _hover={{
+          bg: isActive ? "#4a95fd" : "rgba(58, 139, 253, 0.15)",
+          color: "white",
+          transform: "translateX(3px)",
+        }}
+        onClick={() => setIsOpen(!isOpen)}
+        transition="all 0.2s"
+        fontSize="md"
+        h="auto"
+        borderRadius="lg"
+        fontWeight={isActive ? "bold" : "medium"}
+        boxShadow={isActive ? "0 0 0 1px rgba(255,255,255,0.2)" : "none"}
+      >
+        <Flex align="center">
+          <Icon as={icon as ElementType} boxSize={6} mr={4} />
+          <Text>
+            {label}
+          </Text>
+        </Flex>
+        <Icon
+          as={isOpen ? FiChevronDown as ElementType : FiChevronRight as ElementType}
+          boxSize={4}
+        />
+      </Button>
+      <Collapse in={isOpen} animateOpacity>
+        <VStack spacing={1} align="stretch" pl={10} mt={1} mb={1}>
+          {subItems.map((item) => (
+            <Button
+              key={item.path}
+              w="full"
+              variant="ghost"
+              justifyContent="flex-start"
+              alignItems="center"
+              px={4}
+              py={3}
+              fontSize="sm"
+              bg={location.pathname === item.path ? "rgba(58, 139, 253, 0.3)" : "transparent"}
+              color={location.pathname === item.path ? "white" : "gray.400"}
+              _hover={{
+                bg: "rgba(58, 139, 253, 0.15)",
+                color: "white",
+                transform: "translateX(3px)",
+              }}
+              onClick={() => navigate(item.path)}
+              borderRadius="md"
+              fontWeight={location.pathname === item.path ? "bold" : "normal"}
+              transition="all 0.2s"
+            >
+              {item.icon && <Icon as={item.icon as ElementType} mr={3} boxSize={4} />}
+              {item.label}
+            </Button>
+          ))}
+        </VStack>
+      </Collapse>
+    </Box>
+  );
+};
+
 const Sidebar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const navItems = [
-    { icon: FiHome, label: "Tableau de bord", path: "/dashboard" },
-    { icon: FiUsers, label: "Utilisateurs", path: "/users" },
-    { icon: FiFileText, label: "Scanner", path: "/scan" },
-    { icon: FiSearch, label: "Rechercher", path: "/search" },
-    { icon: FiTrash2, label: "Corbeille", path: "/trash" },
-    { icon: FiFolder, label: "Mes Documents", path: "/my-documents" },
-    { icon: FiClock, label: "Historique", path: "/history" },
-    { icon: FiShare2, label: "Partagés", path: "/shared" },
-    { icon: FiGitBranch, label: "Workflows", path: "/workflow" },
-    { icon: FiBriefcase, label: "Organisation", path: "/organization" },
-    { icon: FiSettings, label: "Paramètres", path: "/settings" },
+  // Définir les sous-éléments pour "Mes Documents"
+  const documentSubItems = [
+    { label: "Tous mes documents", path: "/my-documents", icon: FiFolder },
+    { label: "Documents récents", path: "/recent-documents", icon: FiClock },
+    { label: "Documents favoris", path: "/favorite-documents", icon: FiHeart },
+    { label: "Documents partagés", path: "/shared-documents", icon: FiShare2 },
   ];
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    window.location.reload();
+  const navItems = [
+    { icon: FiHome, label: "Tableau de bord", path: "/dashboard", show: true },
+    { icon: FiUsers, label: "Utilisateurs", path: "/users", show: canManageUsers(user) },
+    { icon: FiClock, label: "Historique", path: "/history", show: true },
+    { icon: FiShare2, label: "Notifications", path: "/notifications", show: true },
+    { icon: FiGitBranch, label: "Workflows", path: "/workflow", show: canManageWorkflows(user) },
+    { icon: FiBriefcase, label: "Organisation", path: "/organization", show: canManageOrganizations(user) },
+    { icon: FiTrash2, label: "Corbeille", path: "/trash", show: canSeeAllArchives(user) },
+    { icon: FiSettings, label: "Paramètres", path: "/settings", show: true },
+  ];
+
+  const handleLogout = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (token) {
+        // Appeler l'API de déconnexion pour enregistrer l'action
+        await fetch(`${config.API_URL}/auth/logout`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include'
+        });
+      }
+    } catch (error) {
+      console.log('Erreur lors de la déconnexion:', error);
+    } finally {
+      // Supprimer le token et recharger la page
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      window.location.reload();
+    }
   };
 
   return (
     <Box
-      w={{ base: "full", md: "260px" }}
-      bg="#181c2f"
+      w={{ base: "full", md: "280px" }}
+      bg="#151930"
       h="100vh"
       pos="fixed"
       left={0}
       top={0}
-      borderRight="1px solid #232946"
+      borderRight="1px solid #2a3152"
       display="flex"
       flexDirection="column"
+      overflowY="auto"
+      boxShadow="0 0 20px rgba(0,0,0,0.3)"
+      css={{
+        '&::-webkit-scrollbar': {
+          width: '6px',
+        },
+        '&::-webkit-scrollbar-track': {
+          background: '#151930',
+        },
+        '&::-webkit-scrollbar-thumb': {
+          background: '#3a3f59',
+          borderRadius: '24px',
+        },
+        '&::-webkit-scrollbar-thumb:hover': {
+          background: '#3a8bfd',
+        },
+        scrollbarWidth: 'thin',
+        scrollbarColor: '#3a3f59 #151930',
+      }}
     >
       {/* Logo */}
-      <Flex align="center" p={5} justify="center">
+      <Flex align="center" p={5} justify="center" minH="80px">
         <Box
           bgGradient="linear(to-br, #3a8bfd, #6f6cff)"
           borderRadius="full"
-          w="44px"
-          h="44px"
+          w="48px"
+          h="48px"
           display="flex"
           alignItems="center"
           justifyContent="center"
-          boxShadow="0 0 0 4px #fff3"
+          boxShadow="0 0 0 4px rgba(255,255,255,0.2)"
           mr={3}
         >
           <Text
@@ -130,9 +281,12 @@ const Sidebar: React.FC = () => {
         </Text>
       </Flex>
 
+      <Divider mb={4} borderColor="#2a3152" />
+
       {/* Navigation Items */}
-      <VStack spacing={1} align="stretch" px={2} flex={1}>
-        {navItems.map((item) => (
+      <VStack spacing={2} align="stretch" px={3} flex={1} minH="0" overflowY="auto">
+        {/* Section principale */}
+        {navItems.slice(0, 2).filter(item => item.show).map((item) => (
           <NavItem
             key={item.path}
             icon={item.icon}
@@ -142,42 +296,99 @@ const Sidebar: React.FC = () => {
             {item.label}
           </NavItem>
         ))}
+        
+        {/* Menu déroulant pour "Mes Documents" */}
+        <NavItemWithSubmenu
+          icon={FiFolder}
+          label="Mes Documents"
+          isActive={
+            location.pathname === "/my-documents" ||
+            location.pathname === "/recent-documents" ||
+            location.pathname === "/favorite-documents" ||
+            location.pathname === "/shared-documents"
+          }
+          subItems={documentSubItems}
+        />
+
+        {/* Lien Recherche */}
+        <NavItem
+          icon={FiSearch}
+          to="/search"
+          isActive={location.pathname === "/search"}
+        >
+          Recherche
+        </NavItem>
+
+        <Divider my={2} borderColor="#2a3152" />
+
+        {/* Section gestion */}
+        {navItems.slice(2, 7).filter(item => item.show).map((item) => (
+          <NavItem
+            key={item.path}
+            icon={item.icon}
+            to={item.path}
+            isActive={location.pathname === item.path}
+          >
+            {item.label}
+          </NavItem>
+        ))}
+
+        {/* Paramètres */}
+        {navItems[7].show && (
+          <NavItem
+            key="/settings"
+            icon={FiSettings}
+            to="/settings"
+            isActive={location.pathname === "/settings"}
+          >
+            Paramètres
+          </NavItem>
+        )}
       </VStack>
 
       {/* User Profile Section */}
-      <Box p={4} borderTop="1px solid #232946">
+      <Box p={5} borderTop="1px solid #2a3152" minH="120px" bg="#1a1f36">
         <Flex align="center" mb={4}>
           <Box
             bgGradient="linear(to-br, #3a8bfd, #6f6cff)"
             borderRadius="full"
-            w="32px"
-            h="32px"
+            w="38px"
+            h="38px"
             display="flex"
             alignItems="center"
             justifyContent="center"
-            mr={2}
+            mr={3}
+            boxShadow="0 0 10px rgba(58,139,253,0.5)"
           >
-            <Text color="white" fontWeight="bold" fontSize="md">
+            <Text color="white" fontWeight="bold" fontSize="lg">
               U
             </Text>
           </Box>
           <Box flex={1}>
-            <Text color="white" fontWeight="bold" fontSize="sm">
+            <Text color="white" fontWeight="bold" fontSize="md">
               Mon Compte
+            </Text>
+            <Text color="gray.400" fontSize="xs">
+              Utilisateur connecté
             </Text>
           </Box>
         </Flex>
         <Button
           w="full"
-          leftIcon={<Icon as={FiLogOut as ElementType} />}
+          leftIcon={<Icon as={FiLogOut as ElementType} boxSize={5} />}
           variant="solid"
           colorScheme="red"
           size="md"
           onClick={handleLogout}
-          bg="rgba(255, 0, 0, 0.2)"
+          bg="rgba(229, 62, 62, 0.2)"
           _hover={{
-            bg: "rgba(255, 0, 0, 0.3)",
+            bg: "rgba(229, 62, 62, 0.4)",
+            transform: "translateY(-2px)",
           }}
+          transition="all 0.2s"
+          fontWeight="bold"
+          boxShadow="0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)"
+          borderRadius="lg"
         >
           Déconnexion
         </Button>
@@ -187,3 +398,4 @@ const Sidebar: React.FC = () => {
 };
 
 export const SidebarContent = Sidebar;
+export default Sidebar;

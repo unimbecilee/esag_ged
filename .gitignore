@@ -101,3 +101,4 @@ site/
 *.so
 *.dylib
 *.dll
+node_modules
