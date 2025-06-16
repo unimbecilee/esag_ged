@@ -69,7 +69,8 @@ import {
   FiStar,
   FiCheckCircle,
   FiXCircle,
-  FiEye
+  FiEye,
+  FiArchive
 } from "react-icons/fi";
 import { useAuthStatus } from "../hooks/useAuthStatus";
 import { useAsyncOperation } from "../hooks/useAsyncOperation";
@@ -82,6 +83,7 @@ import DocumentMoveModal from "./DocumentMoveModal";
 import DocumentVersions from "./DocumentVersions";
 import config from "../config";
 import StartWorkflowModal from './Document/StartWorkflowModal';
+import ArchiveRequestModal from './Document/ArchiveRequestModal';
 
 interface Document {
   id: number;
@@ -96,6 +98,7 @@ interface Document {
   proprietaire_prenom?: string;
   proprietaire_id?: number;
   dossier_id?: number | null;
+  est_archive?: boolean;
 }
 
 interface Folder {
@@ -210,6 +213,10 @@ const MyDocuments: React.FC = () => {
   // Workflow
   const [isWorkflowModalOpen, setIsWorkflowModalOpen] = useState(false);
   const [documentToWorkflow, setDocumentToWorkflow] = useState<{id: number, title: string} | null>(null);
+
+  // Archive
+  const [documentToArchive, setDocumentToArchive] = useState<{ id: number; title: string } | null>(null);
+  const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
 
   useEffect(() => {
     // Ne charger que si l'utilisateur est connecté
@@ -763,6 +770,24 @@ const MyDocuments: React.FC = () => {
     loadCurrentView();
   };
 
+  // Fonction pour ouvrir le modal de demande d'archive
+  const handleRequestArchive = (documentId: number) => {
+    const document = documents.find(d => d.id === documentId);
+    if (document) {
+      setDocumentToArchive({
+        id: documentId,
+        title: document.titre
+      });
+      setIsArchiveModalOpen(true);
+    }
+  };
+  
+  // Fonction appelée après la soumission d'une demande d'archive
+  const handleArchiveRequested = () => {
+    // Recharger les documents pour mettre à jour leur statut
+    loadCurrentView();
+  };
+
   return (
     <Box p={5}>
       {/* Header */}
@@ -1057,20 +1082,17 @@ const MyDocuments: React.FC = () => {
                                 {/* Séparateur */}
                                 <Divider borderColor="#3a445e" />
                                 
-                                {/* Actions de gestion */}
-                                {/* Option Déplacer désactivée temporairement
-                                <MenuItem
-                                  icon={<Icon as={FiMove as ElementType} />}
-                                  onClick={() => handleMoveDocument(doc.id, doc.titre)}
-                                  _hover={{ bg: "#2d3250" }}
-                                  color="white"
-                                >
-                                  Déplacer
-                                </MenuItem>
-                                */}
-                                
-                                {/* Séparateur */}
-                                <Divider borderColor="#3a445e" />
+                                {/* Action d'archivage */}
+                                {!doc.est_archive && (
+                                  <MenuItem
+                                    icon={<Icon as={FiArchive as ElementType} />}
+                                    onClick={() => handleRequestArchive(doc.id)}
+                                    _hover={{ bg: "#2d3250" }}
+                                    color="orange.300"
+                                  >
+                                    Demander l'archivage
+                                  </MenuItem>
+                                )}
                                 
                                 {/* Action de suppression */}
                                 <MenuItem
@@ -1234,6 +1256,17 @@ const MyDocuments: React.FC = () => {
           documentId={documentToWorkflow.id}
           documentTitle={documentToWorkflow.title}
           onWorkflowStarted={handleWorkflowStarted}
+        />
+      )}
+
+      {/* Modal de demande d'archive */}
+      {documentToArchive && (
+        <ArchiveRequestModal
+          isOpen={isArchiveModalOpen}
+          onClose={() => setIsArchiveModalOpen(false)}
+          documentId={documentToArchive.id}
+          documentTitle={documentToArchive.title}
+          onArchiveRequested={handleArchiveRequested}
         />
       )}
     </Box>
