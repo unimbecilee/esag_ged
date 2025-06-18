@@ -9,7 +9,7 @@ export const hasRole = (user: User | null, roles: string[]): boolean => {
 export const canManageUsers = (user: User | null) => hasRole(user, ['admin']);
 export const canManageRoles = (user: User | null) => hasRole(user, ['admin']);
 export const canManageOrganizations = (user: User | null) => hasRole(user, ['admin']);
-export const canManageWorkflows = (user: User | null) => hasRole(user, ['admin']);
+export const canManageWorkflows = (user: User | null) => hasRole(user, ['admin', 'chef_de_service']);
 export const canDeleteDocuments = (user: User | null) => hasRole(user, ['admin']);
 export const canSeeAllArchives = (user: User | null) => hasRole(user, ['admin', 'archiviste']);
 export const canAccessAllStats = (user: User | null) => hasRole(user, ['admin']);

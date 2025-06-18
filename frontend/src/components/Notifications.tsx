@@ -47,26 +47,8 @@ import {
 import { asElementType } from '../utils/iconUtils';
 import config from '../config';
 import { useAsyncOperation } from '../hooks/useAsyncOperation';
-
-interface Notification {
-  id: number;
-  title: string;
-  message: string;
-  type: string;
-  is_read: boolean;
-  created_at: string;
-  document_id?: number;
-  document_title?: string;
-}
-
-interface Subscription {
-  id: number;
-  document_id: number;
-  document_title: string;
-  notification_types: string[];
-  created_at: string;
-  is_active: boolean;
-}
+import NotificationModal from './NotificationModal';
+import { Notification, Subscription } from '../types/notifications';
 
 const Notifications: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -74,6 +56,8 @@ const Notifications: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+  const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const { executeOperation } = useAsyncOperation();
   const toast = useToast();
 
@@ -246,6 +230,21 @@ const Notifications: React.FC = () => {
     });
   };
 
+  const handleNotificationClick = (notification: Notification) => {
+    setSelectedNotification(notification);
+    setIsNotificationModalOpen(true);
+  };
+
+  const handleNotificationUpdated = () => {
+    fetchNotifications();
+    fetchUnreadCount();
+  };
+
+  const handleCloseNotificationModal = () => {
+    setIsNotificationModalOpen(false);
+    setSelectedNotification(null);
+  };
+
   useEffect(() => {
     fetchNotifications();
     fetchUnreadCount();
@@ -349,6 +348,10 @@ const Notifications: React.FC = () => {
                       <Tr 
                         key={notification.id}
                         bg={notification.is_read ? "transparent" : "#2a3657"}
+                        onClick={() => handleNotificationClick(notification)}
+                        cursor="pointer"
+                        _hover={{ bg: "#363b5a" }}
+                        transition="background-color 0.2s"
                       >
                         <Td>
                           {notification.is_read ? (
@@ -518,6 +521,14 @@ const Notifications: React.FC = () => {
           </TabPanel>
         </TabPanels>
       </Tabs>
+
+      {/* Modal de détail de notification */}
+      <NotificationModal
+        isOpen={isNotificationModalOpen}
+        onClose={handleCloseNotificationModal}
+        notification={selectedNotification}
+        onNotificationUpdated={handleNotificationUpdated}
+      />
     </Box>
   );
 };

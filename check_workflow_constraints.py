@@ -1,66 +1,53 @@
-import psycopg2
+from AppFlask.db import db_connection
 from psycopg2.extras import RealDictCursor
 
-# Configuration de base de données (même que dans AppFlask/db.py)
-DATABASE_CONFIG = {
-    'host': 'postgresql-thefau.alwaysdata.net',
-    'dbname': 'thefau_archive',
-    'user': 'thefau',
-    'password': 'Passecale2002@',
-    'port': 5432
-}
-
-def check_workflow_constraints():
-    """Vérifier les contraintes de la table workflow"""
-    try:
-        conn = psycopg2.connect(**DATABASE_CONFIG)
-        cursor = conn.cursor(cursor_factory=RealDictCursor)
-        
-        print("=== STRUCTURE TABLE WORKFLOW ===")
-        cursor.execute("""
-            SELECT column_name, data_type, is_nullable, column_default
-            FROM information_schema.columns 
-            WHERE table_name = 'workflow'
-            ORDER BY ordinal_position
-        """)
-        
-        columns = cursor.fetchall()
-        for col in columns:
-            print(f"- {col['column_name']}: {col['data_type']} ({'NULL' if col['is_nullable'] == 'YES' else 'NOT NULL'}) - Default: {col['column_default']}")
-        
-        print("\n=== CONTRAINTES TABLE WORKFLOW ===")
-        cursor.execute("""
-            SELECT 
-                constraint_name,
-                constraint_type,
-                check_clause
-            FROM information_schema.table_constraints tc
-            LEFT JOIN information_schema.check_constraints cc ON tc.constraint_name = cc.constraint_name
-            WHERE tc.table_name = 'workflow'
-            AND tc.table_schema = 'public'
-        """)
-        
-        constraints = cursor.fetchall()
-        for constraint in constraints:
-            print(f"- {constraint['constraint_name']}: {constraint['constraint_type']}")
-            if constraint['check_clause']:
-                print(f"  Condition: {constraint['check_clause']}")
-        
-        print("\n=== DONNÉES EXISTANTES WORKFLOW ===")
-        cursor.execute("SELECT * FROM workflow LIMIT 5")
-        workflows = cursor.fetchall()
-        
-        if workflows:
-            for workflow in workflows:
-                print(f"- ID: {workflow['id']}, Nom: {workflow['nom']}, Statut: {workflow['statut']}")
-        else:
-            print("Aucun workflow existant")
-            
-        cursor.close()
-        conn.close()
-        
-    except Exception as e:
-        print(f"Erreur: {e}")
-
-if __name__ == "__main__":
-    check_workflow_constraints() 
+try:
+    conn = db_connection()
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    
+    # Vérifier les statuts existants
+    cursor.execute("SELECT DISTINCT statut FROM workflow WHERE statut IS NOT NULL")
+    statuts = cursor.fetchall()
+    
+    print('=== STATUTS WORKFLOW EXISTANTS ===')
+    for s in statuts:
+        print(f'Statut: "{s["statut"]}"')
+    
+    # Vérifier les contraintes
+    cursor.execute("""
+        SELECT constraint_name, check_clause 
+        FROM information_schema.check_constraints 
+        WHERE constraint_name LIKE '%workflow%'
+    """)
+    constraints = cursor.fetchall()
+    
+    print('\n=== CONTRAINTES SUR WORKFLOW ===')
+    for c in constraints:
+        print(f'Contrainte: {c["constraint_name"]}')
+        print(f'Clause: {c["check_clause"]}')
+    
+    # Essayer d'insérer un workflow avec différents statuts
+    test_statuts = ['actif', 'ACTIF', 'active', 'ACTIVE', 'enabled', 'ENABLED']
+    
+    print('\n=== TEST DES STATUTS ===')
+    for statut in test_statuts:
+        try:
+            cursor.execute("""
+                INSERT INTO workflow (nom, description, statut) 
+                VALUES (%s, %s, %s)
+            """, (f'Test {statut}', 'Test workflow', statut))
+            print(f'✅ Statut "{statut}" accepté')
+            # Rollback pour ne pas garder le test
+            conn.rollback()
+            break
+        except Exception as e:
+            print(f'❌ Statut "{statut}" rejeté: {str(e)[:100]}...')
+            conn.rollback()
+    
+    cursor.close()
+    conn.close()
+    
+except Exception as e:
+    print(f'Erreur: {e}')
+    import traceback
+    traceback.print_exc() 

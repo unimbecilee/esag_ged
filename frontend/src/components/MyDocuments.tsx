@@ -84,6 +84,7 @@ import DocumentVersions from "./DocumentVersions";
 import config from "../config";
 import StartWorkflowModal from './Document/StartWorkflowModal';
 import ArchiveRequestModal from './Document/ArchiveRequestModal';
+import ValidationWorkflowButton from './ValidationWorkflow/ValidationWorkflowButton';
 
 interface Document {
   id: number;
@@ -1070,6 +1071,17 @@ const MyDocuments: React.FC = () => {
                                 >
                                   Partager
                                 </MenuItem>
+                                
+                                {/* Action de validation */}
+                                <MenuItem
+                                  icon={<Icon as={FiCheckCircle as ElementType} />}
+                                  onClick={() => handleSubmitForValidation(doc.id)}
+                                  _hover={{ bg: "#2d3250" }}
+                                  color="green.300"
+                                >
+                                  Demander validation
+                                </MenuItem>
+                                
                                 <MenuItem
                                   icon={<Icon as={FiHeart as ElementType} color={favoriteStatuses[doc.id] ? "#ff6b6b" : "#3a8bfd"} />}
                                   onClick={() => handleToggleFavorite(doc.id)}
@@ -1250,13 +1262,25 @@ const MyDocuments: React.FC = () => {
 
       {/* Modal pour soumettre un document pour validation */}
       {documentToWorkflow && (
-        <StartWorkflowModal
-          isOpen={isWorkflowModalOpen}
-          onClose={() => setIsWorkflowModalOpen(false)}
-          documentId={documentToWorkflow.id}
-          documentTitle={documentToWorkflow.title}
-          onWorkflowStarted={handleWorkflowStarted}
-        />
+        <Modal isOpen={isWorkflowModalOpen} onClose={() => setIsWorkflowModalOpen(false)} size="lg">
+          <ModalOverlay />
+          <ModalContent bg="#232946" color="white">
+            <ModalHeader>Demander validation du document</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>
+              <VStack spacing={4} align="stretch">
+                <ValidationWorkflowButton
+                  documentId={documentToWorkflow.id}
+                  documentTitle={documentToWorkflow.title}
+                  onWorkflowStarted={() => {
+                    handleWorkflowStarted();
+                    setIsWorkflowModalOpen(false);
+                  }}
+                />
+              </VStack>
+            </ModalBody>
+          </ModalContent>
+        </Modal>
       )}
 
       {/* Modal de demande d'archive */}

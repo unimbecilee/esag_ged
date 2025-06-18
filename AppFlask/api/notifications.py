@@ -276,6 +276,103 @@ def get_notification_stats(current_user):
         logger.error(f"Erreur statistiques notifications: {str(e)}")
         return jsonify({'message': 'Erreur lors de la récupération des statistiques'}), 500
 
+@bp.route('/notifications/<int:notification_id>/click', methods=['POST'])
+@token_required
+def handle_notification_click(current_user, notification_id):
+    """Gérer le clic sur une notification et retourner l'URL de redirection"""
+    try:
+        conn = db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Récupérer la notification avec ses métadonnées
+        cursor.execute("""
+            SELECT id, type, metadata, workflow_id, document_id, is_read
+            FROM notifications 
+            WHERE id = %s AND user_id = %s
+        """, (notification_id, current_user['id']))
+        
+        notification = cursor.fetchone()
+        
+        if not notification:
+            cursor.close()
+            conn.close()
+            return jsonify({'message': 'Notification non trouvée'}), 404
+        
+        # Marquer comme lue si pas encore lu
+        if not notification['is_read']:
+            cursor.execute("""
+                UPDATE notifications 
+                SET is_read = true, read_at = NOW() 
+                WHERE id = %s
+            """, (notification_id,))
+            conn.commit()
+        
+        cursor.close()
+        conn.close()
+        
+        # Déterminer l'URL de redirection selon le type et les métadonnées
+        redirect_url = '/dashboard'  # URL par défaut
+        
+        # Parser les métadonnées JSON si elles sont sous forme de string
+        metadata = notification.get('metadata', {})
+        if isinstance(metadata, str):
+            try:
+                metadata = json.loads(metadata)
+            except:
+                metadata = {}
+        
+        notification_type = notification['type']
+        
+        # URL explicite dans les métadonnées
+        if metadata and isinstance(metadata, dict) and 'redirect_url' in metadata:
+            redirect_url = metadata['redirect_url']
+        
+        # Construire l'URL selon le type
+        elif notification_type in ['workflow_approval_required', 'archive_request']:
+            workflow_instance_id = None
+            if metadata and isinstance(metadata, dict):
+                workflow_instance_id = metadata.get('workflow_instance_id')
+            
+            if not workflow_instance_id:
+                workflow_instance_id = notification.get('workflow_id')
+                
+            # Rediriger vers l'onglet "Mes validations" (onglet 1, index 0-based)
+            redirect_url = '/workflow?tab=1'
+        
+        elif notification_type in ['workflow_approved', 'workflow_rejected', 'workflow_completed']:
+            document_id = None
+            if metadata and isinstance(metadata, dict):
+                document_id = metadata.get('document_id')
+            
+            if not document_id:
+                document_id = notification.get('document_id')
+                
+            if document_id:
+                redirect_url = f'/documents/{document_id}'
+            else:
+                redirect_url = '/my-documents'
+        
+        elif 'document' in notification_type:
+            document_id = None
+            if metadata and isinstance(metadata, dict):
+                document_id = metadata.get('document_id')
+            
+            if not document_id:
+                document_id = notification.get('document_id')
+                
+            if document_id:
+                redirect_url = f'/documents/{document_id}'
+        
+        return jsonify({
+            'redirect_url': redirect_url,
+            'notification_type': notification_type,
+            'action_required': metadata.get('action_required', False) if metadata else False
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Erreur gestion clic notification: {str(e)}")
+        return jsonify({'message': 'Erreur lors du traitement'}), 500
+
 # ================================
 # ROUTES OPTIONS POUR CORS
 # ================================
@@ -291,6 +388,46 @@ def handle_unread_count_options():
 @bp.route('/notifications/preferences', methods=['OPTIONS'])
 def handle_preferences_options():
     return '', 200
+
+@bp.route('/notifications/archive-request', methods=['POST'])
+@token_required
+def send_archive_request_notifications(current_user):
+    """Envoyer des notifications pour une demande d'archivage"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({'message': 'Données manquantes'}), 400
+        
+        document_id = data.get('document_id')
+        document_title = data.get('document_title')
+        comment = data.get('comment', '')
+        
+        if not document_id or not document_title:
+            return jsonify({'message': 'document_id et document_title sont requis'}), 400
+        
+        # Utiliser le service de notification pour envoyer aux responsables
+        from AppFlask.services.notification_service import NotificationService
+        
+        success = NotificationService.notify_archive_request(
+            document_id=document_id,
+            initiateur_id=current_user['id']
+        )
+        
+        if success:
+            return jsonify({
+                'message': 'Notifications envoyées aux responsables d\'archivage',
+                'success': True
+            }), 200
+        else:
+            return jsonify({
+                'message': 'Erreur lors de l\'envoi des notifications',
+                'success': False
+            }), 500
+        
+    except Exception as e:
+        logger.error(f"Erreur envoi notifications archivage: {str(e)}")
+        return jsonify({'message': 'Erreur lors de l\'envoi des notifications'}), 500
 
 @bp.route('/notifications/stats', methods=['OPTIONS'])
 def handle_stats_options():

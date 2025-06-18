@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   VStack,
@@ -48,9 +48,10 @@ interface NavItemProps {
   children: React.ReactNode;
   to: string;
   isActive: boolean;
+  badge?: number;
 }
 
-const NavItem: React.FC<NavItemProps> = ({ icon, children, to, isActive }) => {
+const NavItem: React.FC<NavItemProps> = ({ icon, children, to, isActive, badge }) => {
   const navigate = useNavigate();
 
   return (
@@ -75,11 +76,32 @@ const NavItem: React.FC<NavItemProps> = ({ icon, children, to, isActive }) => {
       borderRadius="lg"
       fontWeight={isActive ? "bold" : "medium"}
       boxShadow={isActive ? "0 0 0 1px rgba(255,255,255,0.2)" : "none"}
+      position="relative"
     >
       <Icon as={icon as ElementType} boxSize={6} mr={4} />
-      <Text>
+      <Text flex={1} textAlign="left">
         {children}
       </Text>
+      {badge && badge > 0 && (
+        <Box
+          position="absolute"
+          top={2}
+          right={2}
+          bg="red.500"
+          color="white"
+          borderRadius="full"
+          minW="20px"
+          h="20px"
+          display="flex"
+          alignItems="center"
+          justifyContent="center"
+          fontSize="xs"
+          fontWeight="bold"
+          boxShadow="0 0 0 2px #151930"
+        >
+          {badge > 99 ? "99+" : badge}
+        </Box>
+      )}
     </Button>
   );
 };
@@ -174,6 +196,39 @@ const Sidebar: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+
+  // Fonction pour récupérer le nombre de notifications non lues
+  const fetchUnreadNotifications = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch(`${config.API_URL}/notifications/unread-count`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setUnreadNotifications(data.unread_count || 0);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la récupération des notifications:', error);
+    }
+  };
+
+  // Récupérer les notifications au chargement et périodiquement
+  useEffect(() => {
+    fetchUnreadNotifications();
+    
+    // Vérifier toutes les 30 secondes
+    const interval = setInterval(fetchUnreadNotifications, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
 
   // Définir les sous-éléments pour "Mes Documents"
   const documentSubItems = [
@@ -328,6 +383,7 @@ const Sidebar: React.FC = () => {
             icon={item.icon}
             to={item.path}
             isActive={location.pathname === item.path}
+            badge={item.path === '/notifications' ? unreadNotifications : undefined}
           >
             {item.label}
           </NavItem>

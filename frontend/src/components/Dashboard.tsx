@@ -59,6 +59,8 @@ import {
   FiAlertCircle,
 } from "react-icons/fi";
 import { ElementType } from 'react';
+import { useAuthStatus } from "../hooks/useAuthStatus";
+import PendingApprovals from './ValidationWorkflow/PendingApprovals';
 
 interface Document {
   id: number;
@@ -79,6 +81,7 @@ interface Activity {
 }
 
 const Dashboard: React.FC = () => {
+  const { user } = useAuthStatus();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState({

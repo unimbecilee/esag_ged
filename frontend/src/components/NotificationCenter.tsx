@@ -45,6 +45,8 @@ import {
   StatArrow,
   useColorModeValue
 } from '@chakra-ui/react';
+import NotificationModal from './NotificationModal';
+import { Notification, NotificationStats, NotificationPreferences } from '../types/notifications';
 import {
   FiBell,
   FiBellOff,
@@ -67,48 +69,7 @@ import { asElementType } from '../utils/iconUtils';
 import config from '../config';
 import { useAsyncOperation } from '../hooks/useAsyncOperation';
 
-interface Notification {
-  id: number;
-  title: string;
-  message: string;
-  type: string;
-  is_read: boolean;
-  created_at: string;
-  document_id?: number;
-  document_title?: string;
-  workflow_id?: number;
-  priority: number;
-  metadata?: any;
-}
 
-interface NotificationStats {
-  general: {
-    total: number;
-    unread: number;
-    last_week: number;
-    last_month: number;
-  };
-  by_type: Array<{
-    type: string;
-    count: number;
-  }>;
-  activity: Array<{
-    date: string;
-    count: number;
-  }>;
-}
-
-interface NotificationPreferences {
-  email_notifications: boolean;
-  app_notifications: boolean;
-  document_notifications: boolean;
-  workflow_notifications: boolean;
-  comment_notifications: boolean;
-  share_notifications: boolean;
-  mention_notifications: boolean;
-  digest_frequency: string;
-  weekend_notifications: boolean;
-}
 
 const NotificationCenter: React.FC = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -120,10 +81,12 @@ const NotificationCenter: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [filterType, setFilterType] = useState<string>('all');
   const [showUnreadOnly, setShowUnreadOnly] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
   
   const { executeOperation } = useAsyncOperation();
   const toast = useToast();
   const { isOpen: isPrefsOpen, onOpen: onPrefsOpen, onClose: onPrefsClose } = useDisclosure();
+  const { isOpen: isNotificationModalOpen, onOpen: onNotificationModalOpen, onClose: onNotificationModalClose } = useDisclosure();
   
   // Couleurs adaptatives
   const bgColor = useColorModeValue('white', '#181c2f');
@@ -370,6 +333,21 @@ const NotificationCenter: React.FC = () => {
     });
   };
 
+  const handleNotificationClick = (notification: Notification) => {
+    setSelectedNotification(notification);
+    onNotificationModalOpen();
+  };
+
+  const handleNotificationUpdated = () => {
+    fetchNotifications();
+    fetchUnreadCount();
+  };
+
+  const handleCloseNotificationModal = () => {
+    onNotificationModalClose();
+    setSelectedNotification(null);
+  };
+
   const handleUpdatePreferences = async (newPreferences: Partial<NotificationPreferences>) => {
     await executeOperation(async () => {
       const token = localStorage.getItem('token');
@@ -535,6 +513,14 @@ const NotificationCenter: React.FC = () => {
                         borderColor={notification.is_read ? borderColor : "#3a8bfd"}
                         borderRadius="lg"
                         position="relative"
+                        cursor="pointer"
+                        onClick={() => handleNotificationClick(notification)}
+                        _hover={{
+                          transform: "translateY(-2px)",
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                          borderColor: "#3a8bfd"
+                        }}
+                        transition="all 0.2s"
                       >
                         <Flex justify="space-between" align="start">
                           <HStack align="start" spacing={3} flex={1}>
@@ -862,6 +848,14 @@ const NotificationCenter: React.FC = () => {
           </ModalFooter>
         </ModalContent>
       </Modal>
+
+      {/* Modal de détail de notification */}
+      <NotificationModal
+        isOpen={isNotificationModalOpen}
+        onClose={handleCloseNotificationModal}
+        notification={selectedNotification}
+        onNotificationUpdated={handleNotificationUpdated}
+      />
     </Box>
   );
 };

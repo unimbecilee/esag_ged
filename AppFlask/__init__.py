@@ -11,7 +11,7 @@ from AppFlask.routes.scan_routes import scan_bp
 from AppFlask.routes.search_routes import search_bp
 # from AppFlask.routes.trash_routes import trash_bp  # DÉSACTIVÉ - remplacé par trash_unified_bp
 from AppFlask.routes.dashboard_routes import dashboard_bp
-from AppFlask.routes.workflow_routes import workflow_bp
+from AppFlask.routes.workflow_routes import workflow_bp, workflow_api_bp
 from AppFlask.routes.organization_routes import organization_bp
 
 from AppFlask.routes.folder_routes import folder_bp
@@ -35,6 +35,7 @@ from AppFlask.api import (
 from AppFlask.api.workflow import bp as api_workflow_bp
 from AppFlask.api.email import bp as api_email_bp
 from AppFlask.api.notifications import bp as api_notifications_bp
+from AppFlask.api.validation_workflow import bp as validation_workflow_bp
 from AppFlask.api.auth import init_admin
 
 # Import du service email
@@ -86,6 +87,7 @@ def create_app():
     # app.register_blueprint(trash_bp)  # DÉSACTIVÉ - remplacé par trash_unified_bp
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(workflow_bp)
+    app.register_blueprint(workflow_api_bp)
     app.register_blueprint(organization_bp)
     app.register_blueprint(folder_bp, url_prefix='/api/folders')
     app.register_blueprint(history_bp, url_prefix='/api/history')
@@ -97,9 +99,12 @@ def create_app():
     app.register_blueprint(api_search_bp, url_prefix='/api')
     # app.register_blueprint(api_trash_bp, url_prefix='/api')  # DÉSACTIVÉ - remplacé par trash_unified_bp
     app.register_blueprint(api_scan_bp, url_prefix='/api')
-    app.register_blueprint(api_workflow_bp, url_prefix='/api')
+    app.register_blueprint(api_workflow_bp)
     app.register_blueprint(api_email_bp, url_prefix='/api')
     app.register_blueprint(api_notifications_bp, url_prefix='/api')
+    
+    # ✅ BLUEPRINT VALIDATION WORKFLOW - Nouveau système de workflow de validation
+    app.register_blueprint(validation_workflow_bp, url_prefix='/api')
 
     # ✅ BLUEPRINT DOCUMENTS UNIFIÉ - Remplace TOUS les anciens blueprints documents conflictuels
     app.register_blueprint(documents_unified_bp, url_prefix='/api')

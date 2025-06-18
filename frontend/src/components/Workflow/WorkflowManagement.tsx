@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Box,
   VStack,
@@ -69,10 +70,13 @@ import {
   FiBarChart
 } from 'react-icons/fi';
 import { useAsyncOperation } from '../../hooks/useAsyncOperation';
+import { useAuth } from '../../contexts/AuthContext';
 import { checkAuthToken } from '../../utils/errorHandling';
+import { asElementType } from '../../utils/iconUtils';
 import { API_URL } from '../../config';
 import CreateWorkflowModal from './CreateWorkflowModal';
 import WorkflowDetailsModal from './WorkflowDetailsModal';
+import PendingApprovals from '../ValidationWorkflow/PendingApprovals';
 
 // Helper component pour les icônes
 const IconWrapper: React.FC<{ icon: any; color?: string }> = ({ icon: IconComponent, color }) => (
@@ -114,9 +118,14 @@ interface PendingApproval {
 
 const WorkflowManagement: React.FC = () => {
   const { executeOperation } = useAsyncOperation();
+  const { user } = useAuth();
   const toast = useToast();
   const { isOpen: isCreateModalOpen, onOpen: onCreateModalOpen, onClose: onCreateModalClose } = useDisclosure();
   const { isOpen: isDetailsModalOpen, onOpen: onDetailsModalOpen, onClose: onDetailsModalClose } = useDisclosure();
+  
+  // Gestion des paramètres d'URL pour les onglets
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [tabIndex, setTabIndex] = useState(0);
 
   // États principaux
   const [workflowTemplates, setWorkflowTemplates] = useState<WorkflowTemplate[]>([]);
@@ -136,6 +145,17 @@ const WorkflowManagement: React.FC = () => {
     pendingApprovals: 0,
     completedToday: 0
   });
+
+  // Gérer l'onglet depuis l'URL au chargement
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam) {
+      const tabNumber = parseInt(tabParam, 10);
+      if (!isNaN(tabNumber) && tabNumber >= 0 && tabNumber <= 3) {
+        setTabIndex(tabNumber);
+      }
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     loadData();
@@ -385,13 +405,31 @@ const WorkflowManagement: React.FC = () => {
         </Grid>
 
         {/* Onglets principaux */}
-        <Tabs colorScheme="blue" variant="enclosed">
+        <Tabs 
+          colorScheme="blue" 
+          variant="enclosed" 
+          index={tabIndex}
+          onChange={(index) => {
+            setTabIndex(index);
+            // Optionnel : mettre à jour l'URL
+            const newSearchParams = new URLSearchParams(searchParams);
+            if (index === 0) {
+              newSearchParams.delete('tab');
+            } else {
+              newSearchParams.set('tab', index.toString());
+            }
+            setSearchParams(newSearchParams);
+          }}
+        >
           <TabList>
             <Tab color="white" _selected={{ color: "white", bg: "#3a8bfd" }}>
               Modèles de workflows
             </Tab>
             <Tab color="white" _selected={{ color: "white", bg: "#3a8bfd" }}>
-              Mes approbations ({pendingApprovals.length})
+              Mes validations ({pendingApprovals.length})
+            </Tab>
+            <Tab color="white" _selected={{ color: "white", bg: "#3a8bfd" }}>
+              Suivi des processus
             </Tab>
             <Tab color="white" _selected={{ color: "white", bg: "#3a8bfd" }}>
               Instances actives
@@ -528,7 +566,132 @@ const WorkflowManagement: React.FC = () => {
               </VStack>
             </TabPanel>
 
-            {/* Onglet Mes approbations */}
+            {/* Onglet Mes validations */}
+            <TabPanel p={0} pt={4}>
+              <PendingApprovals 
+                userId={user?.id}
+                onApprovalProcessed={() => {
+                  // Optionnellement recharger les données
+                }} 
+              />
+            </TabPanel>
+
+            {/* Onglet Suivi des processus */}
+            <TabPanel p={0} pt={4}>
+              <VStack spacing={6} align="stretch">
+                <Heading size="md" color="white">
+                  Suivi des processus de workflow
+                </Heading>
+                
+                {/* Statistiques de suivi */}
+                <Grid templateColumns="repeat(auto-fit, minmax(200px, 1fr))" gap={4}>
+                  <Card bg="#20243a" borderColor="#3a8bfd">
+                    <CardBody textAlign="center">
+                      <Icon as={asElementType(FiClock)} boxSize={8} color="#3a8bfd" mb={2} />
+                      <Text fontSize="2xl" fontWeight="bold" color="white">
+                        {workflowInstances.filter(w => w.statut === 'en_cours').length}
+                      </Text>
+                      <Text color="gray.400">En cours</Text>
+                    </CardBody>
+                  </Card>
+                  
+                  <Card bg="#20243a" borderColor="#3a8bfd">
+                    <CardBody textAlign="center">
+                      <Icon as={asElementType(FiCheck)} boxSize={8} color="green.400" mb={2} />
+                      <Text fontSize="2xl" fontWeight="bold" color="white">
+                        {workflowInstances.filter(w => w.statut === 'approuve').length}
+                      </Text>
+                      <Text color="gray.400">Approuvés</Text>
+                    </CardBody>
+                  </Card>
+                  
+                  <Card bg="#20243a" borderColor="#3a8bfd">
+                    <CardBody textAlign="center">
+                      <Icon as={asElementType(FiX)} boxSize={8} color="red.400" mb={2} />
+                      <Text fontSize="2xl" fontWeight="bold" color="white">
+                        {workflowInstances.filter(w => w.statut === 'rejete').length}
+                      </Text>
+                      <Text color="gray.400">Rejetés</Text>
+                    </CardBody>
+                  </Card>
+                  
+                  <Card bg="#20243a" borderColor="#3a8bfd">
+                    <CardBody textAlign="center">
+                      <Icon as={asElementType(FiBarChart)} boxSize={8} color="orange.400" mb={2} />
+                      <Text fontSize="2xl" fontWeight="bold" color="white">
+                        {workflowInstances.length}
+                      </Text>
+                      <Text color="gray.400">Total</Text>
+                    </CardBody>
+                  </Card>
+                </Grid>
+
+                {/* Ligne du temps des processus récents */}
+                <Box bg="#20243a" borderRadius="lg" p={6}>
+                  <Heading size="sm" color="white" mb={4}>
+                    Processus récents
+                  </Heading>
+                  
+                  {workflowInstances.length === 0 ? (
+                    <Alert status="info">
+                      <AlertIcon />
+                      Aucun processus de workflow en cours
+                    </Alert>
+                  ) : (
+                    <VStack spacing={4} align="stretch">
+                      {workflowInstances.slice(0, 5).map((instance) => (
+                        <Flex
+                          key={instance.id}
+                          p={4}
+                          bg="#232946"
+                          borderRadius="md"
+                          borderLeft="4px solid"
+                          borderLeftColor={
+                            instance.statut === 'approuve' ? 'green.400' :
+                            instance.statut === 'rejete' ? 'red.400' :
+                            instance.statut === 'en_cours' ? 'orange.400' : '#3a8bfd'
+                          }
+                          justify="space-between"
+                          align="center"
+                        >
+                          <VStack align="start" spacing={1}>
+                            <Text fontWeight="bold" color="white">
+                              {instance.document_titre}
+                            </Text>
+                            <Text fontSize="sm" color="gray.300">
+                              {instance.workflow_nom} • {instance.etape_courante_nom}
+                            </Text>
+                            <HStack spacing={2} fontSize="xs" color="gray.400">
+                              <Text>
+                                Initié par {instance.initiateur_prenom} {instance.initiateur_nom}
+                              </Text>
+                              <Text>•</Text>
+                              <Text>
+                                {new Date(instance.date_debut).toLocaleDateString('fr-FR')}
+                              </Text>
+                            </HStack>
+                          </VStack>
+                          
+                          <Badge
+                            colorScheme={
+                              instance.statut === 'approuve' ? 'green' :
+                              instance.statut === 'rejete' ? 'red' :
+                              instance.statut === 'en_cours' ? 'orange' : 'blue'
+                            }
+                          >
+                            {instance.statut === 'en_cours' ? 'En cours' :
+                             instance.statut === 'approuve' ? 'Approuvé' :
+                             instance.statut === 'rejete' ? 'Rejeté' : instance.statut}
+                          </Badge>
+                        </Flex>
+                      ))}
+                    </VStack>
+                  )}
+                </Box>
+              </VStack>
+            </TabPanel>
+
+            {/* Onglet Instances actives */}
             <TabPanel p={0} pt={4}>
               <Box bg="#20243a" borderRadius="lg" overflow="hidden">
                 {isLoading ? (
@@ -537,11 +700,11 @@ const WorkflowManagement: React.FC = () => {
                       <Skeleton key={i} height="80px" width="100%" />
                     ))}
                   </VStack>
-                ) : pendingApprovals.length === 0 ? (
+                ) : workflowInstances.length === 0 ? (
                   <Box textAlign="center" py={8}>
-                    <Text color="gray.400" mb={2}>Aucune approbation en attente</Text>
+                    <Text color="gray.400" mb={2}>Aucune instance active</Text>
                     <Text color="gray.500" fontSize="sm">
-                      Les documents nécessitant votre approbation apparaîtront ici
+                      Les instances de workflow actives apparaîtront ici
                     </Text>
                   </Box>
                 ) : (

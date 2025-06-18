@@ -141,7 +141,15 @@ class WorkflowInstance:
                        w.nom as workflow_nom,
                        d.titre as document_titre,
                        u.nom as initiateur_nom, u.prenom as initiateur_prenom,
-                       e.nom as etape_courante_nom
+                       e.nom as etape_courante_nom,
+                       e.id as etape_id,
+                       wi.date_debut as date_echeance,
+                       CASE 
+                           WHEN wi.date_debut > NOW() - INTERVAL '7 days' THEN 'normal'
+                           WHEN wi.date_debut > NOW() - INTERVAL '14 days' THEN 'medium'
+                           ELSE 'high'
+                       END as priorite,
+                       COALESCE(wi.commentaire, 'Validation requise') as description
                 FROM workflow_instance wi
                 JOIN workflow w ON wi.workflow_id = w.id
                 JOIN document d ON wi.document_id = d.id
@@ -167,7 +175,16 @@ class WorkflowInstance:
                 ORDER BY wi.date_debut ASC
             """, (user_id, user_id, user_id, user_id))
             
-            return cursor.fetchall()
+            # Récupérer les données et les convertir en liste de dictionnaires
+            results = cursor.fetchall()
+            
+            # Convertir en liste de dictionnaires Python standard
+            approvals = []
+            for row in results:
+                approval = dict(row)
+                approvals.append(approval)
+                
+            return approvals
             
         finally:
             cursor.close()
@@ -636,4 +653,40 @@ class WorkflowInstance:
             'date_debut': instance_row['date_debut'].isoformat() if instance_row['date_debut'] else None,
             'date_fin': instance_row['date_fin'].isoformat() if instance_row.get('date_fin') else None,
             'commentaire': instance_row['commentaire']
-        } 
+        }
+
+    @staticmethod
+    def get_all(limit: int = None, offset: int = 0) -> List[Dict]:
+        """Récupérer toutes les instances de workflow avec pagination optionnelle"""
+        conn = db_connection()
+        if not conn:
+            return []
+        
+        try:
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            
+            query = """
+                SELECT wi.*, 
+                       w.nom as workflow_nom,
+                       d.titre as document_titre,
+                       u.nom as initiateur_nom, u.prenom as initiateur_prenom,
+                       e.nom as etape_courante_nom
+                FROM workflow_instance wi
+                LEFT JOIN workflow w ON wi.workflow_id = w.id
+                LEFT JOIN document d ON wi.document_id = d.id
+                LEFT JOIN utilisateur u ON wi.initiateur_id = u.id
+                LEFT JOIN etapeworkflow e ON wi.etape_courante_id = e.id
+                ORDER BY wi.date_debut DESC
+            """
+            
+            if limit is not None:
+                query += " LIMIT %s OFFSET %s"
+                cursor.execute(query, (limit, offset))
+            else:
+                cursor.execute(query)
+            
+            return cursor.fetchall()
+            
+        finally:
+            cursor.close()
+            conn.close() 

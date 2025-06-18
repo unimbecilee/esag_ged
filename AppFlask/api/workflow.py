@@ -253,7 +253,23 @@ def get_document_workflows(current_user, document_id):
         current_app.logger.error(f"Erreur lors de la récupération des workflows du document: {e}")
         return jsonify({'error': str(e)}), 500
 
-@bp.route('/workflow-instances/pending', methods=['GET'])
+@bp.route('/api/workflow-instances', methods=['GET'])
+@token_required
+def get_all_workflow_instances(current_user):
+    """Récupérer toutes les instances de workflow avec pagination optionnelle"""
+    try:
+        limit = request.args.get('limit', type=int)
+        offset = request.args.get('offset', 0, type=int)
+        
+        instances = WorkflowInstance.get_all(limit=limit, offset=offset)
+        
+        return jsonify([WorkflowInstance.to_dict(i) for i in instances]), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Erreur lors de la récupération des instances de workflow: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@bp.route('/api/workflow-instances/pending', methods=['GET'])
 @token_required
 def get_pending_approvals(current_user):
     """Récupérer les approbations en attente pour l'utilisateur"""
@@ -266,7 +282,7 @@ def get_pending_approvals(current_user):
         current_app.logger.error(f"Erreur lors de la récupération des approbations en attente: {e}")
         return jsonify({'error': str(e)}), 500
 
-@bp.route('/workflow-instances/<int:instance_id>/approve', methods=['POST'])
+@bp.route('/api/workflow-instances/<int:instance_id>/approve', methods=['POST'])
 @token_required
 def approve_workflow_step(current_user, instance_id):
     """Approuver une étape de workflow"""
@@ -306,7 +322,7 @@ def approve_workflow_step(current_user, instance_id):
         current_app.logger.error(f"Erreur lors de l'approbation: {e}")
         return jsonify({'error': str(e)}), 500
 
-@bp.route('/workflow-instances/<int:instance_id>/reject', methods=['POST'])
+@bp.route('/api/workflow-instances/<int:instance_id>/reject', methods=['POST'])
 @token_required
 def reject_workflow_step(current_user, instance_id):
     """Rejeter une étape de workflow"""
@@ -346,7 +362,7 @@ def reject_workflow_step(current_user, instance_id):
         current_app.logger.error(f"Erreur lors du rejet: {e}")
         return jsonify({'error': str(e)}), 500
 
-@bp.route('/workflow-instances/<int:instance_id>/cancel', methods=['POST'])
+@bp.route('/api/workflow-instances/<int:instance_id>/cancel', methods=['POST'])
 @token_required
 def cancel_workflow_instance(current_user, instance_id):
     """Annuler une instance de workflow"""
@@ -370,7 +386,7 @@ def cancel_workflow_instance(current_user, instance_id):
         current_app.logger.error(f"Erreur lors de l'annulation: {e}")
         return jsonify({'error': str(e)}), 500
 
-@bp.route('/workflow-instances/<int:instance_id>', methods=['GET'])
+@bp.route('/api/workflow-instances/<int:instance_id>', methods=['GET'])
 @token_required
 def get_workflow_instance(current_user, instance_id):
     """Récupérer une instance de workflow avec son historique"""
@@ -430,4 +446,71 @@ def get_users_for_approval(current_user):
         
     except Exception as e:
         current_app.logger.error(f"Erreur lors de la récupération des utilisateurs: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# === ROUTE SPÉCIFIQUE POUR LE WORKFLOW D'ARCHIVAGE ===
+
+@bp.route('/workflows/archivage', methods=['GET'])
+@token_required
+def get_archivage_workflow(current_user):
+    """Récupérer le workflow d'archivage"""
+    try:
+        # Rechercher un workflow avec 'archivage' dans le nom
+        conn = db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        cursor.execute("""
+            SELECT * FROM workflow
+            WHERE LOWER(nom) LIKE %s
+            LIMIT 1
+        """, ('%archivage%',))
+        
+        workflow = cursor.fetchone()
+        
+        if not workflow:
+            # Si aucun workflow d'archivage n'existe, en créer un par défaut
+            workflow_id = Workflow.create(
+                nom="Workflow d'archivage",
+                description="Workflow pour la gestion des demandes d'archivage de documents",
+                createur_id=current_user['id']
+            )
+            
+            # Créer les étapes du workflow
+            etape1_id = Workflow.add_etape(
+                workflow_id=workflow_id,
+                nom="Validation chef de service",
+                description="Validation de la demande d'archivage par le chef de service",
+                type_approbation="SIMPLE",
+                ordre=1
+            )
+            
+            etape2_id = Workflow.add_etape(
+                workflow_id=workflow_id,
+                nom="Validation archiviste",
+                description="Validation finale par l'archiviste",
+                type_approbation="SIMPLE",
+                ordre=2
+            )
+            
+            # Récupérer le workflow créé
+            cursor.execute("SELECT * FROM workflow WHERE id = %s", (workflow_id,))
+            workflow = cursor.fetchone()
+            
+            # Enregistrer l'action
+            log_user_action(
+                current_user['id'],
+                'WORKFLOW_CREATE',
+                f"Création automatique du workflow d'archivage (ID: {workflow_id})",
+                request
+            )
+            
+            current_app.logger.info(f"Workflow d'archivage créé automatiquement avec l'ID {workflow_id}")
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify(workflow), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Erreur lors de la récupération du workflow d'archivage: {e}")
         return jsonify({'error': str(e)}), 500 

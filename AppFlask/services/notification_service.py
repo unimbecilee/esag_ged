@@ -71,6 +71,7 @@ class NotificationService:
                 return None
             
             # Créer la notification en base
+            import json as json_module
             cursor.execute("""
                 INSERT INTO notifications 
                 (user_id, title, message, type, document_id, workflow_id, 
@@ -80,7 +81,7 @@ class NotificationService:
             """, (
                 user_id, title, message, notification_type, document_id,
                 workflow_id, created_by_id, priority, expires_at,
-                metadata or {}
+                json_module.dumps(metadata or {})
             ))
             
             notification_id = cursor.fetchone()['id']
@@ -624,6 +625,245 @@ class NotificationService:
         except Exception as e:
             logger.error(f"❌ Erreur marquage notifications expirées: {str(e)}")
             return 0
+
+    @staticmethod
+    def create_workflow_notification(
+        user_id: int,
+        workflow_instance_id: int,
+        notification_type: str,
+        document_id: int = None,
+        document_title: str = None,
+        workflow_title: str = None,
+        etape_name: str = None,
+        initiateur_name: str = None,
+        due_date: str = None,
+        priority: int = 2,
+        send_email: bool = True
+    ) -> Optional[int]:
+        """
+        Créer une notification spécifique pour les workflows avec métadonnées de redirection
+        """
+        try:
+            # Définir le titre et message selon le type
+            titles = {
+                'WORKFLOW_APPROVAL_REQUIRED': f"Validation requise : {document_title}",
+                'WORKFLOW_APPROVED': f"Document approuvé : {document_title}",
+                'WORKFLOW_REJECTED': f"Document rejeté : {document_title}",
+                'WORKFLOW_COMPLETED': f"Workflow terminé : {document_title}",
+                'ARCHIVE_REQUEST': f"Demande d'archivage : {document_title}",
+                'ARCHIVE_APPROVED': f"Archivage approuvé : {document_title}",
+                'ARCHIVE_REJECTED': f"Archivage refusé : {document_title}"
+            }
+            
+            messages = {
+                'WORKFLOW_APPROVAL_REQUIRED': f"Le document '{document_title}' nécessite votre validation à l'étape '{etape_name}'.",
+                'WORKFLOW_APPROVED': f"Votre document '{document_title}' a été approuvé à l'étape '{etape_name}'.",
+                'WORKFLOW_REJECTED': f"Votre document '{document_title}' a été rejeté à l'étape '{etape_name}'.",
+                'WORKFLOW_COMPLETED': f"Le workflow pour le document '{document_title}' s'est terminé avec succès.",
+                'ARCHIVE_REQUEST': f"Une demande d'archivage a été soumise pour le document '{document_title}' par {initiateur_name}.",
+                'ARCHIVE_APPROVED': f"La demande d'archivage pour le document '{document_title}' a été approuvée.",
+                'ARCHIVE_REJECTED': f"La demande d'archivage pour le document '{document_title}' a été refusée."
+            }
+            
+            title = titles.get(notification_type, f"Notification workflow : {document_title}")
+            message = messages.get(notification_type, f"Notification concernant le document '{document_title}'")
+            
+            # Métadonnées pour la redirection
+            metadata = {
+                'workflow_instance_id': workflow_instance_id,
+                'document_id': document_id,
+                'document_title': document_title,
+                'workflow_title': workflow_title,
+                'etape_name': etape_name,
+                'initiateur_name': initiateur_name,
+                'due_date': due_date,
+                'redirect_url': f"/workflow/validation/{workflow_instance_id}",
+                'action_required': notification_type in ['WORKFLOW_APPROVAL_REQUIRED', 'ARCHIVE_REQUEST']
+            }
+            
+            return NotificationService.create_notification(
+                user_id=user_id,
+                title=title,
+                message=message,
+                notification_type=notification_type.lower(),
+                document_id=document_id,
+                workflow_id=workflow_instance_id,
+                priority=priority,
+                metadata=metadata,
+                send_email=send_email
+            )
+            
+        except Exception as e:
+            logger.error(f"❌ Erreur création notification workflow: {str(e)}")
+            return None
+
+    @staticmethod
+    def notify_workflow_assigned(instance_id: int, etape_id: int, assigned_user_id: int, assigner_id: int) -> bool:
+        """Notifier un utilisateur qu'une tâche de workflow lui a été assignée"""
+        try:
+            conn = db_connection()
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # Récupérer les informations complètes
+            cursor.execute("""
+                SELECT 
+                    wi.id as instance_id,
+                    wi.document_id,
+                    d.titre as document_title,
+                    w.nom as workflow_title,
+                    e.nom as etape_name,
+                    u_initiateur.nom as initiateur_nom,
+                    u_initiateur.prenom as initiateur_prenom,
+                    u_assigne.nom as assigned_nom,
+                    u_assigne.prenom as assigned_prenom,
+                    wi.date_echeance
+                FROM workflow_instance wi
+                JOIN document d ON wi.document_id = d.id
+                JOIN workflow w ON wi.workflow_id = w.id
+                JOIN etapeworkflow e ON e.id = %s
+                JOIN utilisateur u_initiateur ON wi.initiateur_id = u_initiateur.id
+                JOIN utilisateur u_assigne ON u_assigne.id = %s
+                WHERE wi.id = %s
+            """, (etape_id, assigned_user_id, instance_id))
+            
+            info = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            
+            if not info:
+                return False
+            
+            # Créer la notification
+            notification_id = NotificationService.create_workflow_notification(
+                user_id=assigned_user_id,
+                workflow_instance_id=instance_id,
+                notification_type='WORKFLOW_APPROVAL_REQUIRED',
+                document_id=info['document_id'],
+                document_title=info['document_title'],
+                workflow_title=info['workflow_title'],
+                etape_name=info['etape_name'],
+                initiateur_name=f"{info['initiateur_prenom']} {info['initiateur_nom']}",
+                due_date=info['date_echeance'].isoformat() if info['date_echeance'] else None,
+                priority=3,  # Haute priorité pour les validations
+                send_email=True
+            )
+            
+            return notification_id is not None
+            
+        except Exception as e:
+            logger.error(f"❌ Erreur notification assignation workflow: {str(e)}")
+            return False
+
+    @staticmethod
+    def notify_workflow_decision(instance_id: int, decision: str, user_id: int, etape_name: str) -> bool:
+        """Notifier l'initiateur d'une décision de workflow"""
+        try:
+            conn = db_connection()
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # Récupérer les informations de l'instance
+            cursor.execute("""
+                SELECT 
+                    wi.initiateur_id,
+                    wi.document_id,
+                    d.titre as document_title,
+                    w.nom as workflow_title
+                FROM workflow_instance wi
+                JOIN document d ON wi.document_id = d.id
+                JOIN workflow w ON wi.workflow_id = w.id
+                WHERE wi.id = %s
+            """, (instance_id,))
+            
+            info = cursor.fetchone()
+            cursor.close()
+            conn.close()
+            
+            if not info:
+                return False
+            
+            # Déterminer le type de notification
+            notification_type = 'WORKFLOW_APPROVED' if decision == 'APPROUVE' else 'WORKFLOW_REJECTED'
+            priority = 2 if decision == 'APPROUVE' else 3
+            
+            # Créer la notification pour l'initiateur
+            notification_id = NotificationService.create_workflow_notification(
+                user_id=info['initiateur_id'],
+                workflow_instance_id=instance_id,
+                notification_type=notification_type,
+                document_id=info['document_id'],
+                document_title=info['document_title'],
+                workflow_title=info['workflow_title'],
+                etape_name=etape_name,
+                priority=priority,
+                send_email=True
+            )
+            
+            return notification_id is not None
+            
+        except Exception as e:
+            logger.error(f"❌ Erreur notification décision workflow: {str(e)}")
+            return False
+
+    @staticmethod
+    def notify_archive_request(document_id: int, initiateur_id: int) -> bool:
+        """Notifier les responsables d'une demande d'archivage"""
+        try:
+            conn = db_connection()
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # Récupérer les informations du document
+            cursor.execute("""
+                SELECT 
+                    d.titre as document_title,
+                    u.nom as initiateur_nom,
+                    u.prenom as initiateur_prenom
+                FROM document d
+                JOIN utilisateur u ON u.id = %s
+                WHERE d.id = %s
+            """, (initiateur_id, document_id))
+            
+            info = cursor.fetchone()
+            
+            if not info:
+                cursor.close()
+                conn.close()
+                return False
+            
+            # Récupérer les responsables d'archivage (Chef de service, Archiviste, Admin)
+            cursor.execute("""
+                SELECT DISTINCT id
+                FROM utilisateur
+                WHERE role IN ('Chef de service', 'Archiviste', 'Administrateur')
+                AND id != %s
+            """, (initiateur_id,))
+            
+            responsables = cursor.fetchall()
+            cursor.close()
+            conn.close()
+            
+            # Créer des notifications pour tous les responsables
+            success_count = 0
+            for responsable in responsables:
+                notification_id = NotificationService.create_workflow_notification(
+                    user_id=responsable['id'],
+                    workflow_instance_id=0,  # Pas d'instance workflow pour les demandes d'archivage directes
+                    notification_type='ARCHIVE_REQUEST',
+                    document_id=document_id,
+                    document_title=info['document_title'],
+                    workflow_title='Demande d\'archivage',
+                    initiateur_name=f"{info['initiateur_prenom']} {info['initiateur_nom']}",
+                    priority=3,
+                    send_email=True
+                )
+                
+                if notification_id:
+                    success_count += 1
+            
+            return success_count > 0
+            
+        except Exception as e:
+            logger.error(f"❌ Erreur notification demande archivage: {str(e)}")
+            return False
 
 # Instance globale du service
 notification_service = NotificationService() 

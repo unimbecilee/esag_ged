@@ -19,14 +19,16 @@ class History:
             return None
         
         try:
-            cursor = conn.cursor()
+            from psycopg2.extras import RealDictCursor
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
             cursor.execute("""
                 INSERT INTO history (action_type, entity_type, entity_id, entity_name, description, metadata, user_id)
                 VALUES (%s, %s, %s, %s, %s, %s, %s)
                 RETURNING id
             """, (action_type, entity_type, entity_id, entity_name, description, metadata, user_id))
             
-            history_id = cursor.fetchone()['id']
+            result = cursor.fetchone()
+            history_id = result['id'] if isinstance(result, dict) else result[0]
             conn.commit()
             return history_id
         except Exception as e:
@@ -43,7 +45,8 @@ class History:
             return [], 0
         
         try:
-            cursor = conn.cursor()
+            from psycopg2.extras import RealDictCursor
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
             
             # Construction de la requête de base
             query = """
@@ -72,9 +75,10 @@ class History:
                 params.append(filters['end_date'])
             
             # Compte total pour la pagination
-            count_query = f"SELECT COUNT(*) FROM ({query}) as count_query"
+            count_query = f"SELECT COUNT(*) as count FROM ({query}) as count_query"
             cursor.execute(count_query, params)
-            total = cursor.fetchone()['count']
+            count_result = cursor.fetchone()
+            total = count_result['count'] if isinstance(count_result, dict) else count_result[0]
             
             # Ajout de la pagination
             query += " ORDER BY h.created_at DESC LIMIT %s OFFSET %s"

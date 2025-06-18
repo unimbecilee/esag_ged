@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify, current_app
 from flask_login import login_required, current_user
 from AppFlask.db import db_connection
 from AppFlask.api.auth import log_user_action
@@ -10,8 +10,11 @@ from AppFlask.models.workflow_approbation import WorkflowApprobation
 from AppFlask.auth import token_required
 import json
 
-# Créez un Blueprint pour les routes de workflow
+# Créez un Blueprint pour les routes de workflow (pages web)
 workflow_bp = Blueprint('workflow', __name__, url_prefix='/workflow')
+
+# Blueprint séparé pour les routes API
+workflow_api_bp = Blueprint('workflow_api', __name__, url_prefix='/api')
 
 @workflow_bp.route('/')
 @login_required
@@ -227,7 +230,7 @@ def reject_instance(instance_id):
     
     return redirect(url_for('workflow.view_instance', instance_id=instance_id))
 
-@workflow_bp.route('/api/workflows', methods=['GET'])
+@workflow_api_bp.route('/workflows', methods=['GET'])
 @token_required
 def get_workflows(current_user):
     """Récupérer tous les workflows"""
@@ -237,7 +240,7 @@ def get_workflows(current_user):
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
-@workflow_bp.route('/api/workflows/<int:workflow_id>', methods=['GET'])
+@workflow_api_bp.route('/workflows/<int:workflow_id>', methods=['GET'])
 @token_required
 def get_workflow(current_user, workflow_id):
     """Récupérer un workflow par ID"""
@@ -249,7 +252,7 @@ def get_workflow(current_user, workflow_id):
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
-@workflow_bp.route('/api/workflows/archivage', methods=['GET'])
+@workflow_api_bp.route('/workflows/archivage', methods=['GET'])
 @token_required
 def get_archivage_workflow(current_user):
     """Récupérer le workflow d'archivage"""
@@ -264,9 +267,9 @@ def get_archivage_workflow(current_user):
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
-@workflow_bp.route('/api/workflow-instances', methods=['POST'])
+@workflow_api_bp.route('/workflow-instances', methods=['POST'])
 @token_required
-def create_workflow_instance(current_user):
+def create_new_workflow_instance(current_user):
     """Créer une nouvelle instance de workflow"""
     try:
         data = request.get_json()
@@ -291,6 +294,80 @@ def create_workflow_instance(current_user):
             commentaire=commentaire
         )
         
+        # Déclencher les notifications pour la première étape
+        try:
+            from AppFlask.services.notification_service import NotificationService
+            
+            # Récupérer les informations nécessaires pour les notifications
+            conn = db_connection()
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # Récupérer les détails de l'instance créée
+            cursor.execute("""
+                SELECT wi.*, d.titre as document_titre, w.nom as workflow_nom,
+                       u.nom as initiateur_nom, u.prenom as initiateur_prenom
+                FROM workflow_instance wi
+                JOIN document d ON wi.document_id = d.id
+                JOIN workflow w ON wi.workflow_id = w.id
+                JOIN utilisateur u ON wi.initiateur_id = u.id
+                WHERE wi.id = %s
+            """, (instance_id,))
+            
+            instance_info = cursor.fetchone()
+            
+            if instance_info:
+                # Récupérer la première étape du workflow
+                cursor.execute("""
+                    SELECT e.*, u.id as responsable_user_id
+                    FROM etapeworkflow e
+                    LEFT JOIN utilisateur u ON u.role = CASE 
+                        WHEN e.responsable_id IS NOT NULL THEN (SELECT role FROM utilisateur WHERE id = e.responsable_id)
+                        ELSE 'chef_de_service'
+                    END
+                    WHERE e.workflow_id = %s 
+                    ORDER BY e.ordre ASC 
+                    LIMIT 1
+                """, (workflow_id,))
+                
+                premiere_etape = cursor.fetchone()
+                
+                if premiere_etape:
+                    # Récupérer tous les utilisateurs avec le rôle responsable de la première étape
+                    cursor.execute("""
+                        SELECT id, nom, prenom FROM utilisateur 
+                        WHERE role = 'chef_de_service'
+                        AND id != %s
+                    """, (current_user['id'],))
+                    
+                    responsables = cursor.fetchall()
+                    
+                    # Créer des notifications pour tous les responsables
+                    for responsable in responsables:
+                        notification_id = NotificationService.create_workflow_notification(
+                            user_id=responsable['id'],
+                            workflow_instance_id=instance_id,
+                            notification_type='WORKFLOW_APPROVAL_REQUIRED',
+                            document_id=document_id,
+                            document_title=instance_info['document_titre'],
+                            workflow_title=instance_info['workflow_nom'],
+                            etape_name=premiere_etape['nom'],
+                            initiateur_name=f"{instance_info['initiateur_prenom']} {instance_info['initiateur_nom']}",
+                            priority=3,
+                            send_email=True
+                        )
+                        
+                        if notification_id:
+                            current_app.logger.info(f"Notification créée pour {responsable['prenom']} {responsable['nom']} (ID: {notification_id})")
+                        else:
+                            current_app.logger.warning(f"Échec création notification pour {responsable['prenom']} {responsable['nom']}")
+            
+            cursor.close()
+            conn.close()
+            
+        except Exception as e:
+            current_app.logger.error(f"Erreur lors de l'envoi des notifications: {str(e)}")
+            # Ne pas faire échouer la création de l'instance pour un problème de notification
+        
         return jsonify({
             'message': 'Instance de workflow créée avec succès',
             'instance_id': instance_id
@@ -299,7 +376,7 @@ def create_workflow_instance(current_user):
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
-@workflow_bp.route('/api/workflow-instances/<int:instance_id>', methods=['GET'])
+@workflow_api_bp.route('/workflow-instances/<int:instance_id>', methods=['GET'])
 @token_required
 def get_workflow_instance(current_user, instance_id):
     """Récupérer une instance de workflow par ID"""
@@ -311,7 +388,7 @@ def get_workflow_instance(current_user, instance_id):
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
-@workflow_bp.route('/api/documents/<int:document_id>/workflow-instances', methods=['GET'])
+@workflow_api_bp.route('/documents/<int:document_id>/workflow-instances', methods=['GET'])
 @token_required
 def get_document_workflow_instances(current_user, document_id):
     """Récupérer les instances de workflow pour un document"""
@@ -321,7 +398,23 @@ def get_document_workflow_instances(current_user, document_id):
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
-@workflow_bp.route('/api/workflow-instances/<int:instance_id>/approve', methods=['POST'])
+@workflow_api_bp.route('/workflow-instances', methods=['GET'])
+@token_required
+def get_all_workflow_instances(current_user):
+    """Récupérer toutes les instances de workflow avec pagination optionnelle"""
+    try:
+        limit = request.args.get('limit', type=int)
+        offset = request.args.get('offset', 0, type=int)
+        
+        instances = WorkflowInstance.get_all(limit=limit, offset=offset)
+        
+        return jsonify([WorkflowInstance.to_dict(i) for i in instances]), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Erreur lors de la récupération des instances de workflow: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@workflow_api_bp.route('/workflow-instances/<int:instance_id>/approve', methods=['POST'])
 @token_required
 def approve_workflow_step(current_user, instance_id):
     """Approuver une étape de workflow"""
@@ -344,13 +437,105 @@ def approve_workflow_step(current_user, instance_id):
         
         if not success:
             return jsonify({'message': 'Échec de l\'approbation'}), 400
+        
+        # Créer des notifications après l'approbation
+        try:
+            from AppFlask.services.notification_service import NotificationService
+            
+            conn = db_connection()
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # Récupérer les informations de l'instance et de l'étape
+            cursor.execute("""
+                SELECT wi.*, d.titre as document_titre, w.nom as workflow_nom,
+                       u.nom as initiateur_nom, u.prenom as initiateur_prenom,
+                       e.nom as etape_nom
+                FROM workflow_instance wi
+                JOIN document d ON wi.document_id = d.id
+                JOIN workflow w ON wi.workflow_id = w.id
+                JOIN utilisateur u ON wi.initiateur_id = u.id
+                JOIN etapeworkflow e ON e.id = %s
+                WHERE wi.id = %s
+            """, (etape_id, instance_id))
+            
+            instance_info = cursor.fetchone()
+            
+            if instance_info:
+                # 1. Notifier l'initiateur de l'approbation
+                NotificationService.create_workflow_notification(
+                    user_id=instance_info['initiateur_id'],
+                    workflow_instance_id=instance_id,
+                    notification_type='WORKFLOW_APPROVED',
+                    document_id=instance_info['document_id'],
+                    document_title=instance_info['document_titre'],
+                    workflow_title=instance_info['workflow_nom'],
+                    etape_name=instance_info['etape_nom'],
+                    priority=2,
+                    send_email=True
+                )
+                
+                # 2. Vérifier s'il y a une étape suivante
+                cursor.execute("""
+                    SELECT e.*, e.ordre as etape_ordre
+                    FROM etapeworkflow e
+                    WHERE e.workflow_id = %s AND e.ordre > (
+                        SELECT ordre FROM etapeworkflow WHERE id = %s
+                    )
+                    ORDER BY e.ordre ASC
+                    LIMIT 1
+                """, (instance_info['workflow_id'], etape_id))
+                
+                etape_suivante = cursor.fetchone()
+                
+                if etape_suivante:
+                    # Il y a une étape suivante, notifier les responsables
+                    cursor.execute("""
+                        SELECT id, nom, prenom FROM utilisateur 
+                        WHERE role = 'chef_de_service'
+                        AND id != %s
+                    """, (current_user['id'],))
+                    
+                    responsables_suivants = cursor.fetchall()
+                    
+                    for responsable in responsables_suivants:
+                        NotificationService.create_workflow_notification(
+                            user_id=responsable['id'],
+                            workflow_instance_id=instance_id,
+                            notification_type='WORKFLOW_APPROVAL_REQUIRED',
+                            document_id=instance_info['document_id'],
+                            document_title=instance_info['document_titre'],
+                            workflow_title=instance_info['workflow_nom'],
+                            etape_name=etape_suivante['nom'],
+                            initiateur_name=f"{instance_info['initiateur_prenom']} {instance_info['initiateur_nom']}",
+                            priority=3,
+                            send_email=True
+                        )
+                else:
+                    # Workflow terminé, notifier l'initiateur
+                    NotificationService.create_workflow_notification(
+                        user_id=instance_info['initiateur_id'],
+                        workflow_instance_id=instance_id,
+                        notification_type='WORKFLOW_COMPLETED',
+                        document_id=instance_info['document_id'],
+                        document_title=instance_info['document_titre'],
+                        workflow_title=instance_info['workflow_nom'],
+                        priority=2,
+                        send_email=True
+                    )
+            
+            cursor.close()
+            conn.close()
+            
+        except Exception as e:
+            current_app.logger.error(f"Erreur notifications approbation: {str(e)}")
+            # Ne pas faire échouer l'approbation pour un problème de notification
             
         return jsonify({'message': 'Étape approuvée avec succès'}), 200
         
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
-@workflow_bp.route('/api/workflow-instances/<int:instance_id>/reject', methods=['POST'])
+@workflow_api_bp.route('/workflow-instances/<int:instance_id>/reject', methods=['POST'])
 @token_required
 def reject_workflow_step(current_user, instance_id):
     """Rejeter une étape de workflow"""
@@ -373,13 +558,56 @@ def reject_workflow_step(current_user, instance_id):
         
         if not success:
             return jsonify({'message': 'Échec du rejet'}), 400
+        
+        # Créer une notification de rejet
+        try:
+            from AppFlask.services.notification_service import NotificationService
+            
+            conn = db_connection()
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # Récupérer les informations de l'instance
+            cursor.execute("""
+                SELECT wi.*, d.titre as document_titre, w.nom as workflow_nom,
+                       u.nom as initiateur_nom, u.prenom as initiateur_prenom,
+                       e.nom as etape_nom
+                FROM workflow_instance wi
+                JOIN document d ON wi.document_id = d.id
+                JOIN workflow w ON wi.workflow_id = w.id
+                JOIN utilisateur u ON wi.initiateur_id = u.id
+                JOIN etapeworkflow e ON e.id = %s
+                WHERE wi.id = %s
+            """, (etape_id, instance_id))
+            
+            instance_info = cursor.fetchone()
+            
+            if instance_info:
+                # Notifier l'initiateur du rejet
+                NotificationService.create_workflow_notification(
+                    user_id=instance_info['initiateur_id'],
+                    workflow_instance_id=instance_id,
+                    notification_type='WORKFLOW_REJECTED',
+                    document_id=instance_info['document_id'],
+                    document_title=instance_info['document_titre'],
+                    workflow_title=instance_info['workflow_nom'],
+                    etape_name=instance_info['etape_nom'],
+                    priority=2,
+                    send_email=True
+                )
+            
+            cursor.close()
+            conn.close()
+            
+        except Exception as e:
+            current_app.logger.error(f"Erreur notifications rejet: {str(e)}")
+            # Ne pas faire échouer le rejet pour un problème de notification
             
         return jsonify({'message': 'Étape rejetée avec succès'}), 200
         
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
-@workflow_bp.route('/api/workflow-instances/<int:instance_id>/cancel', methods=['POST'])
+@workflow_api_bp.route('/workflow-instances/<int:instance_id>/cancel', methods=['POST'])
 @token_required
 def cancel_workflow_instance(current_user, instance_id):
     """Annuler une instance de workflow"""
@@ -398,7 +626,7 @@ def cancel_workflow_instance(current_user, instance_id):
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
-@workflow_bp.route('/api/pending-approvals', methods=['GET'])
+@workflow_api_bp.route('/pending-approvals', methods=['GET'])
 @token_required
 def get_pending_approvals(current_user):
     """Récupérer les approbations en attente pour l'utilisateur courant"""
@@ -408,7 +636,7 @@ def get_pending_approvals(current_user):
     except Exception as e:
         return jsonify({'message': str(e)}), 500
 
-@workflow_bp.route('/api/workflows/<int:workflow_id>/etapes', methods=['GET'])
+@workflow_api_bp.route('/workflows/<int:workflow_id>/etapes', methods=['GET'])
 @token_required
 def get_workflow_etapes(current_user, workflow_id):
     """Récupérer les étapes d'un workflow"""
