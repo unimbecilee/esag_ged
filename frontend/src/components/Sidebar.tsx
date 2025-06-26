@@ -37,10 +37,14 @@ import { ElementType } from "react";
 import config from '../config';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  canManageUsers,
-  canManageOrganizations,
-  canManageWorkflows,
-  canSeeAllArchives,
+  canAccessUsers,
+  canAccessHistory,
+  canAccessNotifications,
+  canAccessWorkflows,
+  canAccessOrganization,
+  canAccessTrash,
+  canAccessSearch,
+  canAccessMyDocuments,
 } from '../utils/permissions';
 
 interface NavItemProps {
@@ -239,14 +243,14 @@ const Sidebar: React.FC = () => {
   ];
 
   const navItems = [
-    { icon: FiHome, label: "Tableau de bord", path: "/dashboard", show: true },
-    { icon: FiUsers, label: "Utilisateurs", path: "/users", show: canManageUsers(user) },
-    { icon: FiClock, label: "Historique", path: "/history", show: true },
-    { icon: FiShare2, label: "Notifications", path: "/notifications", show: true },
-    { icon: FiGitBranch, label: "Workflows", path: "/workflow", show: canManageWorkflows(user) },
-    { icon: FiBriefcase, label: "Organisation", path: "/organization", show: canManageOrganizations(user) },
-    { icon: FiTrash2, label: "Corbeille", path: "/trash", show: canSeeAllArchives(user) },
-    { icon: FiSettings, label: "Paramètres", path: "/settings", show: true },
+    { icon: FiHome, label: "Tableau de bord", path: "/dashboard", show: true }, // Accessible à tous
+    { icon: FiUsers, label: "Utilisateurs", path: "/users", show: canAccessUsers(user) }, // Admin uniquement
+    { icon: FiClock, label: "Historique", path: "/history", show: canAccessHistory(user) }, // Admin et archiviste
+    { icon: FiShare2, label: "Notifications", path: "/notifications", show: canAccessNotifications(user) }, // Tous les rôles
+    { icon: FiGitBranch, label: "Workflows", path: "/workflow", show: canAccessWorkflows(user) }, // Admin, chef_de_service, validateur
+    { icon: FiBriefcase, label: "Organisation", path: "/organization", show: canAccessOrganization(user) }, // Admin uniquement
+    { icon: FiTrash2, label: "Corbeille", path: "/trash", show: canAccessTrash(user) }, // Admin et archiviste
+    { icon: FiSettings, label: "Paramètres", path: "/settings", show: true }, // Accessible à tous
   ];
 
   const handleLogout = async () => {
@@ -352,27 +356,31 @@ const Sidebar: React.FC = () => {
           </NavItem>
         ))}
         
-        {/* Menu déroulant pour "Mes Documents" */}
-        <NavItemWithSubmenu
-          icon={FiFolder}
-          label="Mes Documents"
-          isActive={
-            location.pathname === "/my-documents" ||
-            location.pathname === "/recent-documents" ||
-            location.pathname === "/favorite-documents" ||
-            location.pathname === "/shared-documents"
-          }
-          subItems={documentSubItems}
-        />
+        {/* Menu déroulant pour "Mes Documents" - Accessible à tous les rôles */}
+        {canAccessMyDocuments(user) && (
+          <NavItemWithSubmenu
+            icon={FiFolder}
+            label="Mes Documents"
+            isActive={
+              location.pathname === "/my-documents" ||
+              location.pathname === "/recent-documents" ||
+              location.pathname === "/favorite-documents" ||
+              location.pathname === "/shared-documents"
+            }
+            subItems={documentSubItems}
+          />
+        )}
 
-        {/* Lien Recherche */}
-        <NavItem
-          icon={FiSearch}
-          to="/search"
-          isActive={location.pathname === "/search"}
-        >
-          Recherche
-        </NavItem>
+        {/* Lien Recherche - Accessible à tous les rôles */}
+        {canAccessSearch(user) && (
+          <NavItem
+            icon={FiSearch}
+            to="/search"
+            isActive={location.pathname === "/search"}
+          >
+            Recherche
+          </NavItem>
+        )}
 
         <Divider my={2} borderColor="#2a3152" />
 

@@ -1,7 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { Container, Box, TextField, InputAdornment, Button, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Typography } from '@mui/material';
-import { Search as SearchIcon, Add as AddIcon } from '@mui/icons-material';
-import { Grid } from '@chakra-ui/react';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Container, 
+  Box, 
+  Input, 
+  InputGroup, 
+  InputLeftElement, 
+  Button, 
+  AlertDialog,
+  AlertDialogOverlay,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogBody,
+  AlertDialogFooter,
+  Text,
+  Grid,
+  Textarea,
+  useDisclosure
+} from '@chakra-ui/react';
 import DocumentCard from '../components/DocumentCard';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -23,6 +38,25 @@ interface Document {
   date_archivage?: string;
 }
 
+// Composant d'icône personnalisé pour éviter les problèmes Material-UI
+const CustomIcon: React.FC<{ type: string }> = ({ type }) => {
+  const iconStyle = {
+    fontSize: '20px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center'
+  };
+  
+  switch (type) {
+    case 'search':
+      return <span style={iconStyle}>🔍</span>;
+    case 'add':
+      return <span style={iconStyle}>➕</span>;
+    default:
+      return null;
+  }
+};
+
 const MyDocuments: React.FC = () => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -30,9 +64,22 @@ const MyDocuments: React.FC = () => {
   const [error, setError] = useState('');
   const [selectedDocumentId, setSelectedDocumentId] = useState<number | null>(null);
   const [workflowComment, setWorkflowComment] = useState('');
-  const [openWorkflowDialog, setOpenWorkflowDialog] = useState(false);
-  const [openArchiveDialog, setOpenArchiveDialog] = useState(false);
   const [archiveComment, setArchiveComment] = useState('');
+  
+  const { 
+    isOpen: isWorkflowOpen, 
+    onOpen: onWorkflowOpen, 
+    onClose: onWorkflowClose 
+  } = useDisclosure();
+  
+  const { 
+    isOpen: isArchiveOpen, 
+    onOpen: onArchiveOpen, 
+    onClose: onArchiveClose 
+  } = useDisclosure();
+  
+  const cancelWorkflowRef = useRef<HTMLButtonElement>(null);
+  const cancelArchiveRef = useRef<HTMLButtonElement>(null);
   
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -173,11 +220,11 @@ const MyDocuments: React.FC = () => {
 
   const handleOpenWorkflowDialog = (id: number) => {
     setSelectedDocumentId(id);
-    setOpenWorkflowDialog(true);
+    onWorkflowOpen();
   };
 
   const handleCloseWorkflowDialog = () => {
-    setOpenWorkflowDialog(false);
+    onWorkflowClose();
     setWorkflowComment('');
     setSelectedDocumentId(null);
   };
@@ -231,11 +278,11 @@ const MyDocuments: React.FC = () => {
 
   const handleOpenArchiveDialog = (id: number) => {
     setSelectedDocumentId(id);
-    setOpenArchiveDialog(true);
+    onArchiveOpen();
   };
 
   const handleCloseArchiveDialog = () => {
-    setOpenArchiveDialog(false);
+    onArchiveClose();
     setArchiveComment('');
     setSelectedDocumentId(null);
   };
@@ -296,43 +343,37 @@ const MyDocuments: React.FC = () => {
   console.log('User role:', user?.role, 'isAdmin:', isAdmin);
 
   return (
-    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
-        <Typography variant="h4">
+    <Container maxW="container.lg" py={8}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={8}>
+        <Text fontSize="3xl" fontWeight="bold">
           Mes Documents
-        </Typography>
+        </Text>
         <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
+          colorScheme="blue"
+          leftIcon={<CustomIcon type="add" />}
           onClick={handleCreateDocument}
         >
           Nouveau Document
         </Button>
       </Box>
       
-      <TextField
-        fullWidth
-        variant="outlined"
-        placeholder="Rechercher des documents..."
-        value={searchQuery}
-        onChange={handleSearch}
-        sx={{ mb: 4 }}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <SearchIcon />
-            </InputAdornment>
-          ),
-        }}
-      />
+      <InputGroup mb={8}>
+        <InputLeftElement>
+          <CustomIcon type="search" />
+        </InputLeftElement>
+        <Input
+          placeholder="Rechercher des documents..."
+          value={searchQuery}
+          onChange={handleSearch}
+        />
+      </InputGroup>
       
       {loading ? (
-        <Typography>Chargement des documents...</Typography>
+        <Text>Chargement des documents...</Text>
       ) : error ? (
-        <Typography color="error">{error}</Typography>
+        <Text color="red.500">{error}</Text>
       ) : filteredDocuments.length === 0 ? (
-        <Typography>Aucun document trouvé.</Typography>
+        <Text>Aucun document trouvé.</Text>
       ) : (
         <Grid templateColumns="repeat(3, 1fr)" gap={6}>
           {filteredDocuments.map((doc) => (
@@ -357,59 +398,55 @@ const MyDocuments: React.FC = () => {
         </Grid>
       )}
 
-      {/* Dialog pour soumettre un document au workflow */}
-      <Dialog open={openWorkflowDialog} onClose={handleCloseWorkflowDialog}>
-        <DialogTitle>Soumettre pour validation</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Vous êtes sur le point de soumettre ce document pour validation. Veuillez ajouter un commentaire si nécessaire.
-          </DialogContentText>
-          <TextField
-            autoFocus
-            margin="dense"
-            id="commentaire"
-            label="Commentaire (optionnel)"
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={workflowComment}
-            onChange={(e) => setWorkflowComment(e.target.value)}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseWorkflowDialog}>Annuler</Button>
-          <Button onClick={handleSubmitWorkflow} variant="contained" color="primary">
-            Soumettre
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* AlertDialog pour soumettre un document au workflow */}
+      <AlertDialog isOpen={isWorkflowOpen} onClose={handleCloseWorkflowDialog} leastDestructiveRef={cancelWorkflowRef}>
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader>Soumettre pour validation</AlertDialogHeader>
+            <AlertDialogBody>
+              <Text mb={4}>
+                Vous êtes sur le point de soumettre ce document pour validation. Veuillez ajouter un commentaire si nécessaire.
+              </Text>
+              <Textarea
+                placeholder="Commentaire (optionnel)"
+                value={workflowComment}
+                onChange={(e) => setWorkflowComment(e.target.value)}
+              />
+            </AlertDialogBody>
+            <AlertDialogFooter>
+              <Button ref={cancelWorkflowRef} onClick={handleCloseWorkflowDialog}>Annuler</Button>
+              <Button colorScheme="blue" onClick={handleSubmitWorkflow} ml={3}>
+                Soumettre
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
 
-      {/* Dialog pour demander l'archivage */}
-      <Dialog open={openArchiveDialog} onClose={handleCloseArchiveDialog}>
-        <DialogTitle>Demande d'archivage</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Vous êtes sur le point de demander l'archivage de ce document. Cette action nécessite une validation par votre chef de service et un archiviste.
-          </DialogContentText>
-          <TextField
-            autoFocus
-            margin="dense"
-            id="commentaire-archive"
-            label="Motif de l'archivage"
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={archiveComment}
-            onChange={(e) => setArchiveComment(e.target.value)}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseArchiveDialog}>Annuler</Button>
-          <Button onClick={handleRequestArchive} variant="contained" color="primary">
-            Demander l'archivage
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* AlertDialog pour demander l'archivage */}
+      <AlertDialog isOpen={isArchiveOpen} onClose={handleCloseArchiveDialog} leastDestructiveRef={cancelArchiveRef}>
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader>Demande d'archivage</AlertDialogHeader>
+            <AlertDialogBody>
+              <Text mb={4}>
+                Vous êtes sur le point de demander l'archivage de ce document. Cette action nécessite une validation par votre chef de service et un archiviste.
+              </Text>
+              <Textarea
+                placeholder="Motif de l'archivage"
+                value={archiveComment}
+                onChange={(e) => setArchiveComment(e.target.value)}
+              />
+            </AlertDialogBody>
+            <AlertDialogFooter>
+              <Button ref={cancelArchiveRef} onClick={handleCloseArchiveDialog}>Annuler</Button>
+              <Button colorScheme="blue" onClick={handleRequestArchive} ml={3}>
+                Demander l'archivage
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </Container>
   );
 };

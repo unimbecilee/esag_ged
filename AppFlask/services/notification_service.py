@@ -325,8 +325,8 @@ class NotificationService:
             return False
     
     @staticmethod
-    def notify_workflow_assigned(workflow_id: int, assigned_user_id: int, assigner_id: int) -> bool:
-        """Notifier l'assignation d'une tâche workflow"""
+    def notify_workflow_task_assigned(workflow_id: int, assigned_user_id: int, assigner_id: int) -> bool:
+        """Notifier l'assignation d'une tâche workflow (méthode générique)"""
         try:
             conn = db_connection()
             cursor = conn.cursor(cursor_factory=RealDictCursor)
@@ -716,7 +716,7 @@ class NotificationService:
                     u_initiateur.prenom as initiateur_prenom,
                     u_assigne.nom as assigned_nom,
                     u_assigne.prenom as assigned_prenom,
-                    wi.date_echeance
+                    wi.date_fin as date_echeance
                 FROM workflow_instance wi
                 JOIN document d ON wi.document_id = d.id
                 JOIN workflow w ON wi.workflow_id = w.id

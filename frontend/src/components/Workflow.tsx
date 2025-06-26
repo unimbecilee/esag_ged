@@ -4,7 +4,7 @@ import RequireRole from './RequireRole';
 
 const Workflow: React.FC = () => {
   return (
-    <RequireRole roles={["admin", "chef_de_service", "directeur"]}>
+    <RequireRole roles={["admin", "chef_de_service", "validateur"]}>
       <WorkflowManagement />
     </RequireRole>
   );

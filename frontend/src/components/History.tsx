@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import HistoryLog from "./HistoryLog";
+import RequireRole from './RequireRole';
 import { 
   Box, 
   Heading, 
@@ -40,7 +41,8 @@ const History: React.FC = () => {
   };
 
   return (
-    <Container maxW="container.xl" py={5}>
+    <RequireRole roles={["admin", "archiviste"]}>
+      <Container maxW="container.xl" py={5}>
       <Box mb={6}>
         <Flex justify="space-between" align="center">
           <Box>
@@ -108,6 +110,7 @@ const History: React.FC = () => {
         </Tabs>
       </Box>
     </Container>
+    </RequireRole>
   );
 };
 

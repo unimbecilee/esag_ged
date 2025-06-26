@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   Box,
   Card,
@@ -11,7 +11,16 @@ import {
   Image,
   Text,
   VStack,
-  Badge
+  Badge,
+  Button,
+  AlertDialog,
+  AlertDialogOverlay,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogBody,
+  AlertDialogFooter,
+  Textarea,
+  useDisclosure
 } from '@chakra-ui/react';
 import { FiFile, FiClock, FiCheckCircle, FiXCircle, FiEdit } from 'react-icons/fi';
 import { formatFileSize, formatDate, getStatusColor, getStatusLabel } from '../utils/formatters';
@@ -19,8 +28,37 @@ import ActionMenu from './ActionMenu';
 import { ElementType } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { MoreVert as MoreVertIcon, Delete as DeleteIcon, Edit as EditIcon, Visibility as ViewIcon, Download as DownloadIcon, Archive as ArchiveIcon } from '@mui/icons-material';
-import { CardContent, Typography, CardActions, Button as MuiButton, Chip, IconButton, Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, TextField } from '@mui/material';
+// Tous les composants sont maintenant fournis par Chakra UI
+
+// Composant d'icône personnalisé pour éviter les problèmes Material-UI
+const CustomIcon: React.FC<{ type: string }> = ({ type }) => {
+  const iconStyle = {
+    fontSize: '16px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '20px',
+    height: '20px',
+    marginRight: '4px'
+  };
+  
+  switch (type) {
+    case 'download':
+      return <span style={iconStyle}>⬇️</span>;
+    case 'menu':
+      return <span style={iconStyle}>⋮</span>;
+    case 'delete':
+      return <span style={iconStyle}>🗑️</span>;
+    case 'edit':
+      return <span style={iconStyle}>✏️</span>;
+    case 'view':
+      return <span style={iconStyle}>👁️</span>;
+    case 'archive':
+      return <span style={iconStyle}>📦</span>;
+    default:
+      return null;
+  }
+};
 
 // Fonction pour obtenir la couleur du badge de statut
 const getStatusBadgeColor = (status: string) => {
@@ -104,9 +142,22 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
 }) => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [openWorkflowDialog, setOpenWorkflowDialog] = useState(false);
-  const [openArchiveDialog, setOpenArchiveDialog] = useState(false);
   const [commentaire, setCommentaire] = useState('');
+  
+  const { 
+    isOpen: isWorkflowOpen, 
+    onOpen: onWorkflowOpen, 
+    onClose: onWorkflowClose 
+  } = useDisclosure();
+  
+  const { 
+    isOpen: isArchiveOpen, 
+    onOpen: onArchiveOpen, 
+    onClose: onArchiveClose 
+  } = useDisclosure();
+  
+  const cancelWorkflowRef = useRef<HTMLButtonElement>(null);
+  const cancelArchiveRef = useRef<HTMLButtonElement>(null);
 
   const handleCheckboxChange = () => {
     onSelect(document.id);
@@ -133,11 +184,11 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
   };
 
   const handleOpenWorkflowDialog = () => {
-    setOpenWorkflowDialog(true);
+    onWorkflowOpen();
   };
 
   const handleCloseWorkflowDialog = () => {
-    setOpenWorkflowDialog(false);
+    onWorkflowClose();
     setCommentaire('');
   };
 
@@ -149,11 +200,11 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
   };
 
   const handleOpenArchiveDialog = () => {
-    setOpenArchiveDialog(true);
+    onArchiveOpen();
   };
 
   const handleCloseArchiveDialog = () => {
-    setOpenArchiveDialog(false);
+    onArchiveClose();
     setCommentaire('');
   };
 
@@ -249,73 +300,71 @@ const DocumentCard: React.FC<DocumentCardProps> = ({
         </VStack>
       </CardBody>
 
-      <CardActions>
-        <MuiButton size="small" startIcon={<ViewIcon />} onClick={handleViewClick}>
-          Voir
-        </MuiButton>
-        {canEdit && (
-          <MuiButton size="small" startIcon={<EditIcon />} onClick={handleEditClick}>
-            Modifier
-          </MuiButton>
-        )}
-        <MuiButton size="small" startIcon={<DownloadIcon />} onClick={handleDownloadClick}>
-          Télécharger
-        </MuiButton>
-      </CardActions>
+      <CardBody pt={0}>
+        <HStack spacing={2} justify="center">
+          <Button size="sm" leftIcon={<CustomIcon type="view" />} onClick={handleViewClick}>
+            Voir
+          </Button>
+          {canEdit && (
+            <Button size="sm" leftIcon={<CustomIcon type="edit" />} onClick={handleEditClick}>
+              Modifier
+            </Button>
+          )}
+          <Button size="sm" leftIcon={<CustomIcon type="download" />} onClick={handleDownloadClick}>
+            Télécharger
+          </Button>
+        </HStack>
+      </CardBody>
 
-      {/* Dialog pour soumettre un document au workflow */}
-      <Dialog open={openWorkflowDialog} onClose={handleCloseWorkflowDialog}>
-        <DialogTitle>Soumettre pour validation</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Vous êtes sur le point de soumettre ce document pour validation. Veuillez ajouter un commentaire si nécessaire.
-          </DialogContentText>
-          <TextField
-            autoFocus
-            margin="dense"
-            id="commentaire"
-            label="Commentaire (optionnel)"
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={commentaire}
-            onChange={(e) => setCommentaire(e.target.value)}
-          />
-        </DialogContent>
-        <DialogActions>
-          <MuiButton onClick={handleCloseWorkflowDialog}>Annuler</MuiButton>
-          <MuiButton onClick={handleSubmitWorkflow} variant="contained" color="primary">
-            Soumettre
-          </MuiButton>
-        </DialogActions>
-      </Dialog>
+      {/* AlertDialog pour soumettre un document au workflow */}
+      <AlertDialog isOpen={isWorkflowOpen} onClose={handleCloseWorkflowDialog} leastDestructiveRef={cancelWorkflowRef}>
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader>Soumettre pour validation</AlertDialogHeader>
+            <AlertDialogBody>
+              <Text mb={4}>
+                Vous êtes sur le point de soumettre ce document pour validation. Veuillez ajouter un commentaire si nécessaire.
+              </Text>
+              <Textarea
+                placeholder="Commentaire (optionnel)"
+                value={commentaire}
+                onChange={(e) => setCommentaire(e.target.value)}
+              />
+            </AlertDialogBody>
+            <AlertDialogFooter>
+              <Button ref={cancelWorkflowRef} onClick={handleCloseWorkflowDialog}>Annuler</Button>
+              <Button colorScheme="blue" onClick={handleSubmitWorkflow} ml={3}>
+                Soumettre
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
 
-      {/* Dialog pour demander l'archivage */}
-      <Dialog open={openArchiveDialog} onClose={handleCloseArchiveDialog}>
-        <DialogTitle>Demande d'archivage</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Vous êtes sur le point de demander l'archivage de ce document. Cette action nécessite une validation par votre chef de service et un archiviste.
-          </DialogContentText>
-          <TextField
-            autoFocus
-            margin="dense"
-            id="commentaire-archive"
-            label="Motif de l'archivage"
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={commentaire}
-            onChange={(e) => setCommentaire(e.target.value)}
-          />
-        </DialogContent>
-        <DialogActions>
-          <MuiButton onClick={handleCloseArchiveDialog}>Annuler</MuiButton>
-          <MuiButton onClick={handleRequestArchive} variant="contained" color="primary">
-            Demander l'archivage
-          </MuiButton>
-        </DialogActions>
-      </Dialog>
+      {/* AlertDialog pour demander l'archivage */}
+      <AlertDialog isOpen={isArchiveOpen} onClose={handleCloseArchiveDialog} leastDestructiveRef={cancelArchiveRef}>
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader>Demande d'archivage</AlertDialogHeader>
+            <AlertDialogBody>
+              <Text mb={4}>
+                Vous êtes sur le point de demander l'archivage de ce document. Cette action nécessite une validation par votre chef de service et un archiviste.
+              </Text>
+              <Textarea
+                placeholder="Motif de l'archivage"
+                value={commentaire}
+                onChange={(e) => setCommentaire(e.target.value)}
+              />
+            </AlertDialogBody>
+            <AlertDialogFooter>
+              <Button ref={cancelArchiveRef} onClick={handleCloseArchiveDialog}>Annuler</Button>
+              <Button colorScheme="blue" onClick={handleRequestArchive} ml={3}>
+                Demander l'archivage
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
     </Card>
   );
 };

@@ -2,7 +2,25 @@ import React, { useState, useEffect } from 'react';
 import { Menu, MenuButton, MenuList, MenuItem, MenuDivider, IconButton, Icon, Box } from '@chakra-ui/react';
 import { FiMoreVertical, FiDownload, FiStar, FiShare2, FiMove, FiClock, FiLock, FiMessageSquare, FiBell, FiTag, FiEye, FiTrash2 } from 'react-icons/fi';
 import { ElementType } from 'react';
-import { Archive as ArchiveIcon } from '@mui/icons-material';
+
+// Composant d'icône personnalisé pour éviter les problèmes Material-UI
+const CustomIcon: React.FC<{ type: string }> = ({ type }) => {
+  const iconStyle = {
+    fontSize: '16px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '16px',
+    height: '16px'
+  };
+  
+  switch (type) {
+    case 'archive':
+      return <span style={iconStyle}>📦</span>;
+    default:
+      return null;
+  }
+};
 
 interface ActionMenuProps {
   documentId: number;
@@ -210,7 +228,7 @@ const ActionMenu: React.FC<ActionMenuProps> = ({
             <>
               <MenuDivider />
               <MenuItem 
-                icon={<Icon as={ArchiveIcon as ElementType} />} 
+                icon={<CustomIcon type="archive" />} 
                 onClick={() => {
                   onRequestArchive(documentId);
                   setIsOpen(false);

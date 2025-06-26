@@ -659,5 +659,87 @@ def get_workflow_etapes(current_user, workflow_id):
         current_app.logger.error(f"Erreur lors de la récupération des étapes du workflow {workflow_id}: {e}")
         return jsonify({'message': str(e)}), 500
 
+@workflow_api_bp.route('/workflow-stats', methods=['GET'])
+@token_required
+def get_workflow_stats(current_user):
+    """Récupérer les statistiques des workflows"""
+    try:
+        conn = db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Statistiques générales
+        stats = {}
+        
+        # 1. Nombre total de workflows (modèles)
+        cursor.execute("SELECT COUNT(*) as count FROM workflow")
+        stats['totalWorkflows'] = cursor.fetchone()['count']
+        
+        # 2. Instances actives (en cours)
+        cursor.execute("SELECT COUNT(*) as count FROM workflow_instance WHERE statut = 'EN_COURS'")
+        stats['activeInstances'] = cursor.fetchone()['count']
+        
+        # 3. Approbations en attente pour l'utilisateur courant
+        user_role = current_user.get('role', '')
+        cursor.execute("""
+            SELECT COUNT(DISTINCT wi.id) as count
+            FROM workflow_instance wi
+            JOIN etapeworkflow e ON wi.etape_courante_id = e.id
+            JOIN workflow_approbateur wa ON e.id = wa.etape_id
+            LEFT JOIN role r ON wa.role_id = r.id
+            WHERE wi.statut = 'EN_COURS'
+            AND (r.nom = %s OR wa.utilisateur_id = %s)
+            AND NOT EXISTS (
+                SELECT 1 FROM workflow_approbation wapp
+                WHERE wapp.instance_id = wi.id 
+                AND wapp.etape_id = e.id 
+                AND wapp.approbateur_id = %s
+            )
+        """, (user_role, current_user['id'], current_user['id']))
+        stats['pendingApprovals'] = cursor.fetchone()['count']
+        
+        # 4. Instances terminées aujourd'hui
+        cursor.execute("""
+            SELECT COUNT(*) as count FROM workflow_instance 
+            WHERE statut = 'TERMINE'
+            AND DATE(date_fin) = CURRENT_DATE
+        """)
+        stats['completedToday'] = cursor.fetchone()['count']
+        
+        # 5. Répartition par statut
+        cursor.execute("""
+            SELECT statut, COUNT(*) as count 
+            FROM workflow_instance 
+            GROUP BY statut
+        """)
+        status_breakdown = {row['statut']: row['count'] for row in cursor.fetchall()}
+        stats['statusBreakdown'] = status_breakdown
+        
+        # 6. Instances récentes (dernières 10)
+        cursor.execute("""
+            SELECT wi.id, wi.statut, wi.date_debut, wi.date_fin,
+                   d.titre as document_titre,
+                   w.nom as workflow_nom,
+                   e.nom as etape_courante_nom,
+                   u.nom as initiateur_nom, u.prenom as initiateur_prenom
+            FROM workflow_instance wi
+            JOIN document d ON wi.document_id = d.id
+            JOIN workflow w ON wi.workflow_id = w.id
+            LEFT JOIN etapeworkflow e ON wi.etape_courante_id = e.id
+            JOIN utilisateur u ON wi.initiateur_id = u.id
+            ORDER BY wi.date_debut DESC
+            LIMIT 10
+        """)
+        recent_instances = [dict(row) for row in cursor.fetchall()]
+        stats['recentInstances'] = recent_instances
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify(stats), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Erreur lors de la récupération des statistiques: {e}")
+        return jsonify({'message': str(e)}), 500
+
 # Vous pouvez ajouter d'autres routes liées aux workflows ici
 # Par exemple, pour lister les workflows, les modifier, les supprimer, etc.

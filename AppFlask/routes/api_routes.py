@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
 from AppFlask.db import db_connection
 from AppFlask.api.auth import token_required
+from AppFlask.api.document_sharing import document_sharing_bp
 import psycopg2.extras
 from datetime import datetime
 

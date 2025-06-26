@@ -106,7 +106,7 @@ def login():
 
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT id, email, password, nom, prenom, role FROM utilisateur WHERE email = %s",
+                "SELECT id, email, mot_de_passe, nom, prenom, role FROM utilisateur WHERE email = %s",
                 (email,)
             )
             user = cursor.fetchone()
@@ -118,7 +118,7 @@ def login():
                     'email': user[1],
                     'role': user[5],
                     'exp': datetime.datetime.utcnow() + datetime.timedelta(days=1)
-                }, Config.SECRET_KEY)
+                }, Config.SECRET_KEY, algorithm='HS256')
 
                 # Log de la connexion réussie
                 logger.info(f"Attempting to log LOGIN_SUCCESS for user_id: {user[0]}")

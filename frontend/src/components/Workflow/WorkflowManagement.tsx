@@ -76,6 +76,7 @@ import { asElementType } from '../../utils/iconUtils';
 import { API_URL } from '../../config';
 import CreateWorkflowModal from './CreateWorkflowModal';
 import WorkflowDetailsModal from './WorkflowDetailsModal';
+import EditWorkflowModal from './EditWorkflowModal';
 import PendingApprovals from '../ValidationWorkflow/PendingApprovals';
 
 // Helper component pour les icônes
@@ -111,9 +112,13 @@ interface PendingApproval {
   workflow_nom: string;
   document_titre: string;
   etape_courante_nom: string;
+  etape_id: number;
   initiateur_nom: string;
   initiateur_prenom: string;
   date_debut: string;
+  date_echeance: string;
+  priorite: string;
+  description: string;
 }
 
 const WorkflowManagement: React.FC = () => {
@@ -122,6 +127,7 @@ const WorkflowManagement: React.FC = () => {
   const toast = useToast();
   const { isOpen: isCreateModalOpen, onOpen: onCreateModalOpen, onClose: onCreateModalClose } = useDisclosure();
   const { isOpen: isDetailsModalOpen, onOpen: onDetailsModalOpen, onClose: onDetailsModalClose } = useDisclosure();
+  const { isOpen: isEditModalOpen, onOpen: onEditModalOpen, onClose: onEditModalClose } = useDisclosure();
   
   // Gestion des paramètres d'URL pour les onglets
   const [searchParams, setSearchParams] = useSearchParams();
@@ -168,6 +174,26 @@ const WorkflowManagement: React.FC = () => {
       async () => {
         const token = checkAuthToken();
 
+        // Charger les statistiques des workflows
+        const statsResponse = await fetch(`${API_URL}/workflow-stats`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (statsResponse.ok) {
+          const statsData = await statsResponse.json();
+          setStats({
+            totalWorkflows: statsData.totalWorkflows || 0,
+            activeInstances: statsData.activeInstances || 0,
+            pendingApprovals: statsData.pendingApprovals || 0,
+            completedToday: statsData.completedToday || 0
+          });
+          
+          // Mettre à jour les instances récentes si disponibles
+          if (statsData.recentInstances) {
+            setWorkflowInstances(statsData.recentInstances);
+          }
+        }
+
         // Charger les modèles de workflow
         const templatesResponse = await fetch(`${API_URL}/workflows`, {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -179,7 +205,7 @@ const WorkflowManagement: React.FC = () => {
         }
 
         // Charger les approbations en attente
-        const approvalsResponse = await fetch(`${API_URL}/workflow-instances/pending`, {
+        const approvalsResponse = await fetch(`${API_URL}/pending-approvals`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -188,16 +214,15 @@ const WorkflowManagement: React.FC = () => {
           setPendingApprovals(approvals);
         }
 
-        // Calculer les statistiques
-        const totalWorkflows = workflowTemplates.length;
-        const pendingApprovalsCount = pendingApprovals.length;
-        
-        setStats({
-          totalWorkflows,
-          activeInstances: 0, // À implémenter
-          pendingApprovals: pendingApprovalsCount,
-          completedToday: 0 // À implémenter
+        // Charger toutes les instances de workflow
+        const instancesResponse = await fetch(`${API_URL}/workflow-instances`, {
+          headers: { 'Authorization': `Bearer ${token}` }
         });
+        
+        if (instancesResponse.ok) {
+          const instances = await instancesResponse.json();
+          setWorkflowInstances(instances);
+        }
       },
       {
         loadingMessage: "Chargement des workflows...",
@@ -211,6 +236,11 @@ const WorkflowManagement: React.FC = () => {
   const handleViewWorkflowDetails = (workflowId: number) => {
     setSelectedWorkflowId(workflowId);
     onDetailsModalOpen();
+  };
+
+  const handleEditWorkflow = (workflowId: number) => {
+    setSelectedWorkflowId(workflowId);
+    onEditModalOpen();
   };
 
   const handleDeleteWorkflow = async (workflowId: number) => {
@@ -247,6 +277,19 @@ const WorkflowManagement: React.FC = () => {
   };
 
   const handleApprove = async (instanceId: number) => {
+    // Trouver l'approbation correspondante pour récupérer l'etape_id
+    const approval = pendingApprovals.find(a => a.id === instanceId);
+    if (!approval) {
+      toast({
+        title: 'Erreur',
+        description: 'Approbation non trouvée',
+        status: 'error',
+        duration: 5000,
+        isClosable: true
+      });
+      return;
+    }
+
     await executeOperation(
       async () => {
         const token = checkAuthToken();
@@ -257,12 +300,15 @@ const WorkflowManagement: React.FC = () => {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({})
+          body: JSON.stringify({
+            etape_id: approval.etape_id,
+            commentaire: ''
+          })
         });
 
         if (!response.ok) {
           const error = await response.json();
-          throw new Error(error.error || 'Erreur lors de l\'approbation');
+          throw new Error(error.message || 'Erreur lors de l\'approbation');
         }
 
         toast({
@@ -283,6 +329,19 @@ const WorkflowManagement: React.FC = () => {
   };
 
   const handleReject = async (instanceId: number) => {
+    // Trouver l'approbation correspondante pour récupérer l'etape_id
+    const approval = pendingApprovals.find(a => a.id === instanceId);
+    if (!approval) {
+      toast({
+        title: 'Erreur',
+        description: 'Approbation non trouvée',
+        status: 'error',
+        duration: 5000,
+        isClosable: true
+      });
+      return;
+    }
+
     await executeOperation(
       async () => {
         const token = checkAuthToken();
@@ -293,12 +352,15 @@ const WorkflowManagement: React.FC = () => {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({})
+          body: JSON.stringify({
+            etape_id: approval.etape_id,
+            commentaire: ''
+          })
         });
 
         if (!response.ok) {
           const error = await response.json();
-          throw new Error(error.error || 'Erreur lors du rejet');
+          throw new Error(error.message || 'Erreur lors du rejet');
         }
 
         toast({
@@ -542,6 +604,7 @@ const WorkflowManagement: React.FC = () => {
                                     bg="#232946" 
                                     color="white"
                                     _hover={{ bg: "#20243a" }}
+                                    onClick={() => handleEditWorkflow(workflow.id)}
                                   >
                                     Modifier
                                   </MenuItem>
@@ -792,6 +855,14 @@ const WorkflowManagement: React.FC = () => {
           isOpen={isDetailsModalOpen}
           onClose={onDetailsModalClose}
           workflowId={selectedWorkflowId}
+        />
+
+        {/* Modal d'édition */}
+        <EditWorkflowModal
+          isOpen={isEditModalOpen}
+          onClose={onEditModalClose}
+          workflowId={selectedWorkflowId}
+          onWorkflowUpdated={loadData}
         />
       </VStack>
     </Box>

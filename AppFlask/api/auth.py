@@ -1,4 +1,4 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, current_app
 from AppFlask.db import db_connection
 from werkzeug.security import check_password_hash, generate_password_hash
 from psycopg2.extras import RealDictCursor
@@ -9,6 +9,7 @@ import os
 import string
 import random
 import logging
+import bcrypt
 import traceback
 
 def log_user_action(user_id, action_type, description, request_obj=None):
@@ -59,7 +60,7 @@ def log_user_action(user_id, action_type, description, request_obj=None):
 bp = Blueprint('api_auth', __name__)
 
 # Clé secrète pour JWT
-SECRET_KEY = os.getenv('SECRET_KEY', 'votre_cle_secrete_ici')
+SECRET_KEY = current_app.config.get('SECRET_KEY') if current_app else os.getenv('SECRET_KEY', 'votre_cle_secrete_ici')
 MODE = os.getenv('MODE', 'prod')
 
 # Configuration de l'administrateur par défaut
@@ -354,7 +355,7 @@ def login():
             token = jwt.encode({
                 'user_id': user['id'],
                 'exp': datetime.utcnow() + timedelta(hours=24)
-            }, SECRET_KEY)
+            }, current_app.config['SECRET_KEY'], algorithm='HS256')
             
             # Enregistrer la connexion réussie
             log_user_action(
@@ -367,7 +368,7 @@ def login():
             cursor.close()
             conn.close()
             return jsonify({
-                'token': token,
+                'access_token': token,
                 'user': {
                     'id': user['id'],
                     'nom': user['nom'],

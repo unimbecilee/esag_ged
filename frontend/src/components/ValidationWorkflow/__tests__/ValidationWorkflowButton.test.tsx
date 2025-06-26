@@ -32,8 +32,10 @@ describe('ValidationWorkflowButton', () => {
     jest.clearAllMocks();
     mockUseAsyncOperation.mockReturnValue({
       executeOperation: mockExecuteOperation,
+      resetState: jest.fn(),
       isLoading: false,
-      error: null
+      error: null,
+      isSuccess: false
     });
   });
 

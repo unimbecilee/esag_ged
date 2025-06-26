@@ -197,20 +197,22 @@ class ValidationWorkflowService:
             
             conn.commit()
             
-            # Enregistrer dans l'historique
-            History.create(
-                action_type='START_WORKFLOW',
-                entity_type='DOCUMENT',
-                entity_id=document_id,
-                entity_name=document['titre'],
-                description=f"Démarrage du workflow de validation",
-                metadata=json.dumps({
-                    'workflow_id': workflow_id,
-                    'instance_id': instance_id,
-                    'etape_courante': premiere_etape['id']
-                }),
-                user_id=initiateur_id
-            )
+            # Enregistrer dans l'historique (version simplifiée pour éviter les erreurs de colonne)
+            try:
+                cursor.execute("""
+                    INSERT INTO history (action_type, entity_type, entity_id, entity_name, description, user_id, created_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, NOW())
+                """, (
+                    'START_WORKFLOW',
+                    'DOCUMENT',
+                    document_id,
+                    document['titre'],
+                    f"Démarrage du workflow de validation",
+                    initiateur_id
+                ))
+                logger.info("Historique enregistré avec succès")
+            except Exception as hist_error:
+                logger.warning(f"Erreur lors de l'enregistrement de l'historique (non bloquante): {hist_error}")
             
             # Notifier les approbateurs de la première étape
             self._notify_next_approvers(instance_id, premiere_etape['id'])
@@ -581,33 +583,45 @@ class ValidationWorkflowService:
             cursor = conn.cursor(cursor_factory=RealDictCursor)
             
             # Récupérer les approbateurs de l'étape
+            logger.info(f"🔍 _notify_next_approvers: Recherche des approbateurs pour l'étape {etape_id}")
             cursor.execute("""
-                SELECT DISTINCT u.id, u.email, u.nom, u.prenom
+                SELECT DISTINCT u.id, u.email, u.nom, u.prenom, u.role
                 FROM workflow_approbateur wa
                 LEFT JOIN role r ON wa.role_id = r.id
                 JOIN utilisateur u ON (
-                    (wa.role_id IS NOT NULL AND u.role = r.nom) OR
-                    (wa.utilisateur_id IS NOT NULL AND u.id = wa.utilisateur_id)
+                    (wa.utilisateur_id IS NOT NULL AND u.id = wa.utilisateur_id) OR
+                    (wa.role_id IS NOT NULL AND u.role = r.nom)
                 )
                 WHERE wa.etape_id = %s
             """, (etape_id,))
             
             approbateurs = cursor.fetchall()
+            logger.info(f"🔍 _notify_next_approvers: {len(approbateurs)} approbateurs trouvés")
+            
+            for approbateur in approbateurs:
+                logger.info(f"🔍 Approbateur trouvé: {approbateur['nom']} {approbateur['prenom']} ({approbateur['email']}) - Rôle: {approbateur['role']}")
             
             # Envoyer les notifications via le nouveau service
             from AppFlask.services.notification_service import NotificationService
             
             for approbateur in approbateurs:
                 try:
-                    NotificationService.notify_workflow_assigned(
+                    logger.info(f"🔍 Tentative d'envoi de notification à {approbateur['email']}")
+                    result = NotificationService.notify_workflow_assigned(
                         instance_id=instance_id,
                         etape_id=etape_id,
                         assigned_user_id=approbateur['id'],
                         assigner_id=0  # ID système
                     )
-                    logger.info(f"✅ Notification envoyée à {approbateur['email']} pour l'instance {instance_id}")
+                    logger.info(f"🔍 Résultat notification: {result}")
+                    if result:
+                        logger.info(f"✅ Notification envoyée à {approbateur['email']} pour l'instance {instance_id}")
+                    else:
+                        logger.warning(f"⚠️ Échec d'envoi de notification à {approbateur['email']}")
                 except Exception as e:
                     logger.error(f"❌ Erreur lors de l'envoi de notification à {approbateur['email']}: {e}")
+                    import traceback
+                    logger.error(f"❌ Traceback: {traceback.format_exc()}")
             
         finally:
             cursor.close()

@@ -76,9 +76,9 @@ const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
       console.log("Données reçues:", data);
 
       if (response.ok) {
-        if (data.token) {
+        if (data.access_token) {
           console.log("Token reçu, sauvegarde dans localStorage");
-          localStorage.setItem("token", data.token);
+          localStorage.setItem("token", data.access_token);
           if (data.user) {
             console.log("Données utilisateur reçues:", data.user);
             localStorage.setItem("user", JSON.stringify(data.user));

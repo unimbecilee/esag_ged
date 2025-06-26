@@ -163,7 +163,7 @@ def get_recent_documents(current_user):
         logger.error(f"Erreur lors de la récupération des documents récents: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@dashboard_bp.route('/api/documents/my', methods=['GET'])
+@dashboard_bp.route('/api/dashboard/documents/my', methods=['GET'])
 @token_required
 def get_my_documents(current_user):
     try:

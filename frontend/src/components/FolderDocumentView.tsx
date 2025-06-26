@@ -550,9 +550,10 @@ const FolderDocumentView: React.FC = () => {
       />
 
       <ShareModal
-        isOpen={isShareOpen}
+        open={isShareOpen}
         onClose={onShareClose}
-        documentId={selectedDocument}
+        documentId={selectedDocument || 0}
+        documentTitle={documents.find(d => d.id === selectedDocument)?.titre || "Document"}
         onShareSuccess={loadFolderContent}
       />
 

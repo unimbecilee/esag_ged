@@ -244,9 +244,10 @@ const Search: React.FC = () => {
 
       {/* Share Modal */}
       <ShareModal
-        isOpen={isShareOpen}
+        open={isShareOpen}
         onClose={onShareClose}
         documentId={selectedDocument || 0}
+        documentTitle={searchResults.find(d => d.id === selectedDocument)?.titre || "Document"}
         onShareSuccess={handleSearch}
       />
     </Box>

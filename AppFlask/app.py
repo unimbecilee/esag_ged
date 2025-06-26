@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify, send_from_directory, current_app
 from flask_cors import CORS
 from AppFlask.routes.auth_routes import auth_bp
+from AppFlask.api.auth import bp as api_auth_bp
 from AppFlask.routes.organization_routes import organization_bp
 from AppFlask.routes.trash_routes import trash_bp
 from AppFlask.routes.history_routes import history_bp
@@ -15,6 +16,7 @@ from AppFlask.routes.document_comment_routes import comment_bp
 from AppFlask.routes.document_subscription_routes import subscription_bp
 from AppFlask.routes.document_checkout_routes import checkout_bp
 from AppFlask.routes.folder_routes import folder_bp
+# Le système de partage est maintenant intégré dans documents_unified.py
 
 from AppFlask.services.logging_service import logging_service
 from AppFlask.services.maintenance_service import maintenance_service
@@ -60,6 +62,7 @@ def create_app():
 
     # Enregistrement des blueprints
     app.register_blueprint(auth_bp, url_prefix='/api')
+    app.register_blueprint(api_auth_bp, url_prefix='/api')
     app.register_blueprint(organization_bp, url_prefix='/api')
     # app.register_blueprint(trash_bp, url_prefix='/api')  # DÉSACTIVÉ - remplacé par trash_unified_bp
     app.register_blueprint(history_bp, url_prefix='/api')
@@ -75,10 +78,14 @@ def create_app():
     app.register_blueprint(subscription_bp, url_prefix='/api')
     app.register_blueprint(checkout_bp, url_prefix='/api')
     app.register_blueprint(folder_bp, url_prefix='/api')
-
-    # BLUEPRINT DOCUMENTS UNIFIÉ - Remplace tous les anciens blueprints documents conflictuels
+    
+    # BLUEPRINT DOCUMENTS UNIFIÉ - Inclut maintenant le système de partage complet
     from .api.documents_unified import bp as documents_unified_bp
     app.register_blueprint(documents_unified_bp, url_prefix='/api')
+    
+    # Vérifier que les routes de partage sont bien enregistrées
+    sharing_routes = [rule.rule for rule in app.url_map.iter_rules() if 'sharing' in rule.rule or 'share' in rule.rule]
+    logger.info(f"✅ Système de partage intégré - {len(sharing_routes)} routes disponibles")
 
     # Démarrage du service de maintenance
     maintenance_service.start_cleanup_scheduler()

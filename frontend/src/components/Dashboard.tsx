@@ -16,8 +16,6 @@ import {
   Stat,
   StatLabel,
   StatNumber,
-  StatHelpText,
-  StatArrow,
   Avatar,
   AvatarGroup,
   Button,
@@ -57,6 +55,7 @@ import {
   FiCheckCircle,
   FiXCircle,
   FiAlertCircle,
+  FiBell,
 } from "react-icons/fi";
 import { ElementType } from 'react';
 import { useAuthStatus } from "../hooks/useAuthStatus";
@@ -80,6 +79,15 @@ interface Activity {
   type: 'upload' | 'download' | 'edit' | 'delete';
 }
 
+interface Notification {
+  id: number;
+  titre: string;
+  message: string;
+  type: 'info' | 'warning' | 'success' | 'error';
+  timestamp: string;
+  read: boolean;
+}
+
 const Dashboard: React.FC = () => {
   const { user } = useAuthStatus();
   const [loading, setLoading] = useState(true);
@@ -89,20 +97,18 @@ const Dashboard: React.FC = () => {
     documents: 0,
     dossiers: 0,
     archives: 0,
-    usersChange: 0,
-    documentsChange: 0,
-    dossiersChange: 0,
-    archivesChange: 0,
   });
   const [recentDocs, setRecentDocs] = useState<Document[]>([]);
   const [activities, setActivities] = useState<Activity[]>([]);
-  const [storageUsed, setStorageUsed] = useState(65);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [workflowStats, setWorkflowStats] = useState({
     completed: 12,
     inProgress: 5,
     pending: 3,
     rejected: 2,
   });
+  const [workflowStatsLoading, setWorkflowStatsLoading] = useState(false);
 
   // Couleurs améliorées pour un meilleur contraste
   const bgCard = useColorModeValue('#1a2036', '#1a2036'); // Plus foncé pour un meilleur contraste
@@ -118,7 +124,8 @@ const Dashboard: React.FC = () => {
       fetchStats(),
       fetchRecentDocs(),
       fetchActivities(),
-      fetchStorage(),
+      fetchNotifications(),
+      fetchWorkflowStats(),
     ]);
     setLoading(false);
   };
@@ -156,10 +163,6 @@ const Dashboard: React.FC = () => {
         documents: documents.count || 3,
         dossiers: dossiers.count || 3,
         archives: archives.count || 3,
-        usersChange: 12,
-        documentsChange: -5,
-        dossiersChange: 8,
-        archivesChange: 15,
       });
     } catch (e) {
       console.error("Erreur lors du chargement des statistiques:", e);
@@ -169,10 +172,6 @@ const Dashboard: React.FC = () => {
         documents: 3,
         dossiers: 3,
         archives: 3,
-        usersChange: 12,
-        documentsChange: -5,
-        dossiersChange: 8,
-        archivesChange: 15,
       });
     }
   };
@@ -225,24 +224,126 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const fetchStorage = async () => {
+  const fetchNotifications = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/documents/my', {
+      
+      // Récupérer les notifications et le compteur séparément
+      const [notificationsRes, unreadCountRes] = await Promise.all([
+        fetch('http://localhost:5000/api/notifications', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }),
+        fetch('http://localhost:5000/api/notifications/unread-count', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        })
+      ]);
+      
+      if (notificationsRes.ok) {
+        const notificationsData = await notificationsRes.json();
+        if (notificationsData.notifications && Array.isArray(notificationsData.notifications)) {
+          setNotifications(notificationsData.notifications);
+        } else {
+          setNotifications([]);
+        }
+      }
+      
+      if (unreadCountRes.ok) {
+        const unreadData = await unreadCountRes.json();
+        setUnreadNotifications(unreadData.unread_count || 0);
+      } else {
+        setUnreadNotifications(0);
+      }
+    } catch (e) {
+      // Données de test pour le développement
+      const testNotifications: Notification[] = [
+        {
+          id: 1,
+          titre: "Nouveau document partagé",
+          message: "Un document a été partagé avec vous par Marie Martin",
+          type: "info" as const,
+          timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // Il y a 2 heures
+          read: false
+        },
+        {
+          id: 2,
+          titre: "Validation requise",
+          message: "Un document est en attente de votre validation",
+          type: "warning" as const,
+          timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(), // Il y a 4 heures
+          read: false
+        },
+        {
+          id: 3,
+          titre: "Document approuvé",
+          message: "Votre document 'Rapport mensuel' a été approuvé",
+          type: "success" as const,
+          timestamp: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // Hier
+          read: true
+        },
+        {
+          id: 4,
+          titre: "Stockage presque plein",
+          message: "Votre espace de stockage est utilisé à 85%",
+          type: "warning" as const,
+          timestamp: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // Il y a 2 jours
+          read: true
+        }
+      ];
+      setNotifications(testNotifications);
+      setUnreadNotifications(testNotifications.filter(n => !n.read).length);
+      }
+  };
+
+  const fetchWorkflowStats = async () => {
+    setWorkflowStatsLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Utiliser les bonnes APIs comme dans WorkflowManagement
+      const statsResponse = await fetch(`http://localhost:5000/api/workflow-stats`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
-      const docs = await res.json();
-      let total = 0;
-      if (Array.isArray(docs)) {
-        total = docs.reduce((acc, doc) => acc + (doc.taille || 0), 0);
+      
+      if (statsResponse.ok) {
+        const statsData = await statsResponse.json();
+        
+        // Utiliser les données de l'API workflow-stats
+        setWorkflowStats({
+          completed: statsData.statusBreakdown?.TERMINE || 0,
+          inProgress: statsData.statusBreakdown?.EN_COURS || 0,
+          pending: statsData.pendingApprovals || 0,
+          rejected: statsData.statusBreakdown?.REJETE || 0,
+        });
+      } else {
+        console.warn("Erreur API workflow-stats:", statsResponse.status);
+        // Données par défaut en cas d'erreur
+        setWorkflowStats({
+          completed: 0,
+          inProgress: 0,
+          pending: 0,
+          rejected: 0,
+        });
       }
-      // Supposons 10 Go max
-      setStorageUsed(Math.round((total / (10 * 1024 * 1024 * 1024)) * 100));
     } catch (e) {
-      setStorageUsed(0);
+      console.error("Erreur lors du chargement des statistiques des workflows:", e);
+      // Données par défaut en cas d'erreur
+      setWorkflowStats({
+        completed: 0,
+        inProgress: 0,
+        pending: 0,
+        rejected: 0,
+      });
+    } finally {
+      setWorkflowStatsLoading(false);
     }
   };
 
@@ -266,13 +367,46 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'success': return FiCheckCircle;
+      case 'warning': return FiAlertCircle;
+      case 'error': return FiXCircle;
+      default: return FiBell;
+    }
+  };
+
+  const getNotificationColor = (type: string) => {
+    switch (type) {
+      case 'success': return 'green';
+      case 'warning': return 'yellow';
+      case 'error': return 'red';
+      default: return 'blue';
+    }
+  };
+
+  const formatTimeAgo = (timestamp: string) => {
+    const now = new Date();
+    const notifTime = new Date(timestamp);
+    const diffInHours = Math.floor((now.getTime() - notifTime.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return "Il y a moins d'une heure";
+    if (diffInHours === 1) return "Il y a 1 heure";
+    if (diffInHours < 24) return `Il y a ${diffInHours} heures`;
+    
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays === 1) return "Hier";
+    if (diffInDays < 7) return `Il y a ${diffInDays} jours`;
+    
+    return notifTime.toLocaleDateString('fr-FR');
+  };
+
   const statCards = [
     { 
       title: "Utilisateurs", 
       value: stats.users, 
       icon: FiUsers, 
       color: "blue",
-      change: stats.usersChange,
       bgGradient: "linear(to-r, blue.500, blue.700)"
     },
     { 
@@ -280,7 +414,6 @@ const Dashboard: React.FC = () => {
       value: stats.documents, 
       icon: FiFileText, 
       color: "green",
-      change: stats.documentsChange,
       bgGradient: "linear(to-r, green.500, green.700)"
     },
     { 
@@ -288,7 +421,6 @@ const Dashboard: React.FC = () => {
       value: stats.dossiers, 
       icon: FiFolder, 
       color: "purple",
-      change: stats.dossiersChange,
       bgGradient: "linear(to-r, purple.500, purple.700)"
     },
     { 
@@ -296,13 +428,16 @@ const Dashboard: React.FC = () => {
       value: stats.archives, 
       icon: FiArchive, 
       color: "orange",
-      change: stats.archivesChange,
       bgGradient: "linear(to-r, orange.500, orange.700)"
     },
   ];
 
   const handleVoirToutDocs = () => {
     window.location.href = '/my-documents';
+  };
+
+  const handleVoirNotifications = () => {
+    window.location.href = '/notifications';
   };
 
   const handleGererStockage = () => {
@@ -396,12 +531,6 @@ const Dashboard: React.FC = () => {
                   <StatNumber fontSize="4xl" color="white" fontWeight="bold">
                     {loading ? <Skeleton height="40px" /> : stat.value}
                   </StatNumber>
-                  {!loading && (
-                    <StatHelpText fontSize="md">
-                      <StatArrow type={stat.change >= 0 ? 'increase' : 'decrease'} />
-                      <Text as="span" fontWeight="medium">{Math.abs(stat.change)}%</Text> ce mois
-                    </StatHelpText>
-                  )}
                 </Stat>
               </CardBody>
             </Card>
@@ -502,32 +631,105 @@ const Dashboard: React.FC = () => {
           {/* Panneau latéral */}
           <GridItem>
             <VStack spacing={6}>
-              {/* Stockage */}
+              {/* Notifications non lues */}
               <Card bg={bgCard} borderWidth="1px" borderColor={borderColor} w="full" boxShadow="lg" borderRadius="xl">
                 <CardHeader py={5} px={6}>
                   <HStack spacing={3}>
-                    <Icon as={FiPieChart as ElementType} color="purple.400" boxSize={6} />
-                    <Heading size="md" color="white" fontWeight="bold">Stockage</Heading>
+                    <Icon as={FiBell as ElementType} color="blue.400" boxSize={6} />
+                    <Heading size="md" color="white" fontWeight="bold">Notifications</Heading>
+                    {unreadNotifications > 0 && (
+                      <Badge colorScheme="red" borderRadius="full" fontSize="xs" px={2}>
+                        {unreadNotifications}
+                      </Badge>
+                    )}
                   </HStack>
                 </CardHeader>
                 <CardBody pt={0} px={6} pb={6}>
                   <VStack spacing={5}>
-                    <CircularProgress
-                      value={storageUsed}
-                      size="140px"
-                      thickness="10px"
-                      color="purple.400"
-                      trackColor="#2a3657"
+                    <Box
+                      w="full"
+                      textAlign="center"
+                      bg="blue.900"
+                      p={6}
+                      borderRadius="xl"
+                      borderWidth="1px"
+                      borderColor="blue.700"
                     >
-                      <CircularProgressLabel color="white" fontSize="2xl" fontWeight="bold">
-                        {storageUsed}%
-                      </CircularProgressLabel>
-                    </CircularProgress>
-                    <Text color="gray.300" fontSize="md" fontWeight="medium">
-                      6.5 GB utilisés sur 10 GB
+                      <Icon as={FiBell as ElementType} boxSize={12} color="blue.400" mb={3} />
+                      <Text fontSize="3xl" fontWeight="bold" color="white" mb={2}>
+                        {unreadNotifications}
+                      </Text>
+                      <Text color="blue.400" fontSize="md" fontWeight="medium">
+                        Notifications non lues
+                      </Text>
+                    </Box>
+                    
+                    {notifications.length > 0 && (
+                      <Box
+                        w="full"
+                        maxHeight="200px"
+                        overflowY="auto"
+                        css={{
+                          '&::-webkit-scrollbar': {
+                            width: '4px',
+                          },
+                          '&::-webkit-scrollbar-track': {
+                            background: '#2a3657',
+                            borderRadius: '2px',
+                          },
+                          '&::-webkit-scrollbar-thumb': {
+                            background: '#4a5568',
+                            borderRadius: '2px',
+                          },
+                          '&::-webkit-scrollbar-thumb:hover': {
+                            background: '#60a5fa',
+                          },
+                          scrollbarWidth: 'thin',
+                          scrollbarColor: '#4a5568 #2a3657',
+                        }}
+                      >
+                        <VStack spacing={3} align="stretch">
+                          {notifications.slice(0, 5).map((notification) => (
+                            <HStack
+                              key={notification.id}
+                              spacing={3}
+                              bg={notification.read ? "#2a3657" : "rgba(59, 130, 246, 0.1)"}
+                              p={3}
+                              borderRadius="lg"
+                              borderLeft="3px solid"
+                              borderLeftColor={`${getNotificationColor(notification.type)}.400`}
+                            >
+                              <Icon
+                                as={getNotificationIcon(notification.type) as ElementType}
+                                color={`${getNotificationColor(notification.type)}.400`}
+                                boxSize={4}
+                              />
+                              <VStack align="start" spacing={1} flex={1}>
+                                <Text fontSize="sm" color="white" fontWeight={notification.read ? "normal" : "bold"}>
+                                  {notification.titre}
+                                </Text>
+                                <Text fontSize="xs" color="gray.400" noOfLines={2}>
+                                  {notification.message}
+                                </Text>
+                                <Text fontSize="xs" color="gray.500">
+                                  {formatTimeAgo(notification.timestamp)}
                     </Text>
-                    <Button size="md" colorScheme="purple" variant="solid" w="full" boxShadow="md" onClick={handleGererStockage}>
-                      Gérer le stockage
+                              </VStack>
+                            </HStack>
+                          ))}
+                        </VStack>
+                      </Box>
+                    )}
+                    
+                    <Button 
+                      size="md" 
+                      colorScheme="blue" 
+                      variant="solid" 
+                      w="full" 
+                      boxShadow="md" 
+                      onClick={handleVoirNotifications}
+                    >
+                      Voir toutes les notifications
                     </Button>
                   </VStack>
                 </CardBody>
@@ -542,8 +744,31 @@ const Dashboard: React.FC = () => {
                   </HStack>
                 </CardHeader>
                 <CardBody pt={0} px={6} pb={6}>
+                  <Box
+                    maxHeight="300px"
+                    overflowY="auto"
+                    css={{
+                      '&::-webkit-scrollbar': {
+                        width: '6px',
+                      },
+                      '&::-webkit-scrollbar-track': {
+                        background: '#2a3657',
+                        borderRadius: '3px',
+                      },
+                      '&::-webkit-scrollbar-thumb': {
+                        background: '#4a5568',
+                        borderRadius: '3px',
+                      },
+                      '&::-webkit-scrollbar-thumb:hover': {
+                        background: '#68d391',
+                      },
+                      scrollbarWidth: 'thin',
+                      scrollbarColor: '#4a5568 #2a3657',
+                    }}
+                  >
                   <VStack spacing={4} align="stretch">
-                    {activities.map((activity) => (
+                      {activities.length > 0 ? (
+                        activities.map((activity) => (
                       <HStack key={activity.id} spacing={3} bg="#2a3657" p={3} borderRadius="lg">
                         <Icon
                           as={getActivityIcon(activity.type) as ElementType}
@@ -560,8 +785,16 @@ const Dashboard: React.FC = () => {
                           </Text>
                         </VStack>
                       </HStack>
-                    ))}
+                        ))
+                      ) : (
+                        <Box textAlign="center" py={8}>
+                          <Icon as={FiActivity as ElementType} boxSize={12} color="gray.400" mb={4} />
+                          <Text color="gray.400" fontSize="md">Aucune activité récente</Text>
+                          <Text color="gray.500" fontSize="sm">Les activités apparaîtront ici</Text>
+                        </Box>
+                      )}
                   </VStack>
+                  </Box>
                 </CardBody>
               </Card>
             </VStack>
@@ -575,13 +808,35 @@ const Dashboard: React.FC = () => {
               <HStack spacing={3}>
                 <Icon as={FiBarChart2 as ElementType} color="orange.400" boxSize={6} />
                 <Heading size="md" color="white" fontWeight="bold">Statut des workflows</Heading>
+                {workflowStatsLoading && (
+                  <Skeleton height="20px" width="80px" />
+                )}
               </HStack>
+              <HStack spacing={2}>
+                <IconButton
+                  aria-label="Actualiser les statistiques"
+                  icon={<Icon as={FiRefreshCw as ElementType} />}
+                  size="sm"
+                  variant="ghost"
+                  color="white"
+                  isLoading={workflowStatsLoading}
+                  onClick={fetchWorkflowStats}
+                  _hover={{ bg: "whiteAlpha.200" }}
+                />
               <Button size="sm" variant="solid" colorScheme="orange">
                 Voir détails
               </Button>
+              </HStack>
             </Flex>
           </CardHeader>
           <CardBody pt={0} px={6} pb={6}>
+            {workflowStatsLoading ? (
+              <SimpleGrid columns={{ base: 2, md: 4 }} spacing={5}>
+                {[1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} height="120px" borderRadius="xl" />
+                ))}
+              </SimpleGrid>
+            ) : (
             <SimpleGrid columns={{ base: 2, md: 4 }} spacing={5}>
               <VStack
                 bg="green.900"
@@ -598,7 +853,7 @@ const Dashboard: React.FC = () => {
                 <Text fontSize="3xl" fontWeight="bold" color="white">
                   {workflowStats.completed}
                 </Text>
-                <Text fontSize="md" color="green.400" fontWeight="medium">Terminés</Text>
+                  <Text fontSize="md" color="green.400" fontWeight="medium">Approuvés</Text>
               </VStack>
               
               <VStack
@@ -655,6 +910,7 @@ const Dashboard: React.FC = () => {
                 <Text fontSize="md" color="red.400" fontWeight="medium">Rejetés</Text>
               </VStack>
             </SimpleGrid>
+            )}
           </CardBody>
         </Card>
       </VStack>

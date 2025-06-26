@@ -119,8 +119,16 @@ def get_my_documents(current_user):
                                WHEN d.taille < 1048576 THEN CONCAT(ROUND(d.taille/1024.0, 2)::text, ' KB')
                                WHEN d.taille < 1073741824 THEN CONCAT(ROUND(d.taille/1048576.0, 2)::text, ' MB')
                                ELSE CONCAT(ROUND(d.taille/1073741824.0, 2)::text, ' GB')
-                           END as taille_formatee
+                           END as taille_formatee,
+                           wi_latest.statut as workflow_statut,
+                           w.nom as workflow_nom
                     FROM document d 
+                    LEFT JOIN (
+                        SELECT DISTINCT ON (document_id) document_id, workflow_id, statut, date_debut
+                        FROM workflow_instance 
+                        ORDER BY document_id, date_debut DESC
+                    ) wi_latest ON d.id = wi_latest.document_id
+                    LEFT JOIN workflow w ON wi_latest.workflow_id = w.id
                     WHERE d.dossier_id IS NULL
                     ORDER BY d.date_ajout DESC
                 """
@@ -135,8 +143,16 @@ def get_my_documents(current_user):
                                WHEN d.taille < 1048576 THEN CONCAT(ROUND(d.taille/1024.0, 2)::text, ' KB')
                                WHEN d.taille < 1073741824 THEN CONCAT(ROUND(d.taille/1048576.0, 2)::text, ' MB')
                                ELSE CONCAT(ROUND(d.taille/1073741824.0, 2)::text, ' GB')
-                           END as taille_formatee
+                           END as taille_formatee,
+                           wi_latest.statut as workflow_statut,
+                           w.nom as workflow_nom
                     FROM document d 
+                    LEFT JOIN (
+                        SELECT DISTINCT ON (document_id) document_id, workflow_id, statut, date_debut
+                        FROM workflow_instance 
+                        ORDER BY document_id, date_debut DESC
+                    ) wi_latest ON d.id = wi_latest.document_id
+                    LEFT JOIN workflow w ON wi_latest.workflow_id = w.id
                     WHERE d.dossier_id = %s
                     ORDER BY d.date_ajout DESC
                 """
@@ -153,8 +169,16 @@ def get_my_documents(current_user):
                                WHEN d.taille < 1048576 THEN CONCAT(ROUND(d.taille/1024.0, 2)::text, ' KB')
                                WHEN d.taille < 1073741824 THEN CONCAT(ROUND(d.taille/1048576.0, 2)::text, ' MB')
                                ELSE CONCAT(ROUND(d.taille/1073741824.0, 2)::text, ' GB')
-                           END as taille_formatee
+                           END as taille_formatee,
+                           wi_latest.statut as workflow_statut,
+                           w.nom as workflow_nom
                     FROM document d 
+                    LEFT JOIN (
+                        SELECT DISTINCT ON (document_id) document_id, workflow_id, statut, date_debut
+                        FROM workflow_instance 
+                        ORDER BY document_id, date_debut DESC
+                    ) wi_latest ON d.id = wi_latest.document_id
+                    LEFT JOIN workflow w ON wi_latest.workflow_id = w.id
                     WHERE d.proprietaire_id = %s AND d.dossier_id IS NULL
                     ORDER BY d.date_ajout DESC
                 """
@@ -169,8 +193,16 @@ def get_my_documents(current_user):
                                WHEN d.taille < 1048576 THEN CONCAT(ROUND(d.taille/1024.0, 2)::text, ' KB')
                                WHEN d.taille < 1073741824 THEN CONCAT(ROUND(d.taille/1048576.0, 2)::text, ' MB')
                                ELSE CONCAT(ROUND(d.taille/1073741824.0, 2)::text, ' GB')
-                           END as taille_formatee
+                           END as taille_formatee,
+                           wi_latest.statut as workflow_statut,
+                           w.nom as workflow_nom
                     FROM document d 
+                    LEFT JOIN (
+                        SELECT DISTINCT ON (document_id) document_id, workflow_id, statut, date_debut
+                        FROM workflow_instance 
+                        ORDER BY document_id, date_debut DESC
+                    ) wi_latest ON d.id = wi_latest.document_id
+                    LEFT JOIN workflow w ON wi_latest.workflow_id = w.id
                     WHERE d.proprietaire_id = %s AND d.dossier_id = %s
                     ORDER BY d.date_ajout DESC
                 """
@@ -768,54 +800,264 @@ def upload_document_with_notifications(current_user):
         print(f"❌ Traceback: {traceback.format_exc()}")
         return jsonify({'error': 'Erreur lors de l\'upload'}), 500
 
-@bp.route('/documents/<int:doc_id>/share', methods=['POST'])
+# ================================
+# ROUTES DE PARTAGE AVANCÉ
+# ================================
+
+@bp.route('/documents/<int:document_id>/share', methods=['POST'])
 @token_required
-def share_document_with_notifications(current_user, doc_id):
-    """Partager un document avec notifications"""
+def create_share(current_user, document_id: int):
+    """Créer un nouveau partage de document"""
     try:
         data = request.get_json()
-        if not data or 'user_id' not in data:
-            return jsonify({'error': 'ID utilisateur requis'}), 400
         
-        shared_with_user_id = data['user_id']
-        permissions = data.get('permissions', 'lecture')
+        if not data:
+            return jsonify({'error': 'Données JSON requises'}), 400
+            
+        destinataires = data.get('destinataires', [])
+        permissions = data.get('permissions', ['lecture'])
+        date_expiration = data.get('date_expiration')
+        commentaire = data.get('commentaire', '')
         
-        # Vérifier les permissions
-        if not has_permission(doc_id, current_user['id'], 'admin'):
-            return jsonify({'error': 'Permission insuffisante'}), 403
+        # Validation basique
+        if not destinataires:
+            return jsonify({'error': 'Au moins un destinataire requis'}), 400
         
         conn = db_connection()
-        if not conn:
-            return jsonify({'error': 'Erreur de connexion à la base de données'}), 500
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
         
-        cursor = conn.cursor()
+        # Vérifier que l'utilisateur a le droit de partager ce document
+        cursor.execute("SELECT id, proprietaire_id FROM document WHERE id = %s", (document_id,))
+        document = cursor.fetchone()
         
-        # Partager le document
+        if not document or document['proprietaire_id'] != current_user['id']:
+            return jsonify({'error': 'Document non trouvé ou accès non autorisé'}), 404
+        
+        partages_crees = []
+        
+        # Traiter la date d'expiration
+        date_exp_parsed = None
+        if date_expiration:
+            try:
+                date_exp_parsed = datetime.fromisoformat(date_expiration.replace('Z', '+00:00'))
+            except ValueError:
+                return jsonify({'error': 'Format de date d\'expiration invalide'}), 400
+        
+        # Créer les partages pour chaque destinataire
+        for destinataire in destinataires:
+            type_dest = destinataire.get('type')
+            id_dest = destinataire.get('id')
+            
+            if not type_dest or not id_dest:
+                continue
+                
+            # Préparer les paramètres selon le type de destinataire
+            utilisateur_id = None
+            role_nom = None
+            organisation_id = None
+            
+            if type_dest == 'utilisateur':
+                utilisateur_id = int(id_dest)
+            elif type_dest == 'role':
+                role_nom = str(id_dest)
+            elif type_dest == 'organisation':
+                organisation_id = int(id_dest)
+            else:
+                continue
+            
+            # Créer le partage dans la table partage_document
         cursor.execute("""
-            INSERT INTO partage (document_id, utilisateur_id, permissions, date_partage)
-            VALUES (%s, %s, %s, NOW())
-            ON CONFLICT (document_id, utilisateur_id) 
-            DO UPDATE SET permissions = EXCLUDED.permissions, date_partage = NOW()
-        """, (doc_id, shared_with_user_id, permissions))
+                INSERT INTO partage_document 
+                (document_id, utilisateur_id, role_nom, organisation_id, 
+                 permissions, createur_id, date_expiration, commentaire)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+            """, (document_id, utilisateur_id, role_nom, organisation_id,
+                  permissions, current_user['id'], date_exp_parsed, commentaire))
+            
+        partage = cursor.fetchone()
+        partages_crees.append({
+            'id': partage['id'],
+            'destinataire': destinataire
+        })
         
         conn.commit()
+        cursor.close()
+        conn.close()
         
-        # Envoyer la notification
-        try:
-            notification_service.notify_document_shared(doc_id, shared_with_user_id, current_user['id'])
-            log_user_action(current_user['id'], 'DOCUMENT_SHARE', 
-                          f"Partage du document {doc_id} avec l'utilisateur {shared_with_user_id}", request)
-        except Exception as e:
-            print(f"⚠️ Erreur notification partage: {str(e)}")
+        return jsonify({
+            'success': True,
+            'message': f'{len(partages_crees)} partage(s) créé(s)',
+            'partages': partages_crees
+        }), 201
+        
+    except Exception as e:
+        print(f"❌ Erreur lors de la création du partage: {e}")
+        return jsonify({'error': 'Erreur lors de la création du partage'}), 500
+
+@bp.route('/documents/<int:document_id>/shares', methods=['GET'])
+@token_required
+def get_document_shares(current_user, document_id: int):
+    """Récupérer tous les partages d'un document"""
+    try:
+        conn = db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Vérifier l'accès au document
+        cursor.execute("SELECT proprietaire_id FROM document WHERE id = %s", (document_id,))
+        document = cursor.fetchone()
+        
+        if not document or document['proprietaire_id'] != current_user['id']:
+            return jsonify({'error': 'Accès non autorisé'}), 403
+        
+        # Récupérer les partages
+        cursor.execute("""
+            SELECT pd.*, 
+                   u.nom as utilisateur_nom, u.prenom as utilisateur_prenom,
+                   o.nom as organisation_nom
+            FROM partage_document pd
+            LEFT JOIN utilisateur u ON pd.utilisateur_id = u.id
+            LEFT JOIN organisation o ON pd.organisation_id = o.id
+            WHERE pd.document_id = %s AND pd.actif = TRUE
+            ORDER BY pd.created_at DESC
+        """, (document_id,))
+        
+        partages = cursor.fetchall()
         
         cursor.close()
         conn.close()
         
-        return jsonify({'message': 'Document partagé avec succès'}), 200
+        return jsonify([dict(partage) for partage in partages]), 200
         
     except Exception as e:
-        print(f"❌ Erreur partage document: {str(e)}")
-        return jsonify({'error': 'Erreur lors du partage'}), 500
+        print(f"❌ Erreur lors de la récupération des partages: {e}")
+        return jsonify({'error': 'Erreur lors de la récupération des partages'}), 500
+
+@bp.route('/shared-documents', methods=['GET'])
+@token_required
+def get_shared_documents(current_user):
+    """Récupérer tous les documents partagés avec l'utilisateur"""
+    try:
+        conn = db_connection()
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Récupérer les documents partagés directement avec l'utilisateur
+        cursor.execute("""
+            SELECT DISTINCT d.*, pd.permissions, pd.date_expiration,
+                   u.nom as createur_nom, u.prenom as createur_prenom
+            FROM document d
+            JOIN partage_document pd ON d.id = pd.document_id
+            LEFT JOIN utilisateur u ON d.proprietaire_id = u.id
+            WHERE pd.actif = TRUE 
+            AND (pd.utilisateur_id = %s 
+                 OR pd.role_nom = (SELECT role FROM utilisateur WHERE id = %s))
+            AND (pd.date_expiration IS NULL OR pd.date_expiration > CURRENT_TIMESTAMP)
+            ORDER BY d.date_ajout DESC
+        """, (current_user['id'], current_user['id']))
+        
+        documents = cursor.fetchall()
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify([dict(doc) for doc in documents]), 200
+        
+    except Exception as e:
+        print(f"❌ Erreur lors de la récupération des documents partagés: {e}")
+        return jsonify({'error': 'Erreur lors de la récupération des documents partagés'}), 500
+
+@bp.route('/sharing/users', methods=['GET'])
+@token_required
+def get_users_for_sharing(current_user):
+    """Récupérer la liste des utilisateurs pour le partage"""
+    try:
+        print(f"🔍 [SHARING DEBUG] Début récupération utilisateurs pour user_id: {current_user['id']}")
+        
+        conn = db_connection()
+        if not conn:
+            print("❌ [SHARING DEBUG] Échec de connexion à la base de données")
+            return jsonify({'error': 'Erreur de connexion à la base de données'}), 500
+            
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        print("🔍 [SHARING DEBUG] Exécution de la requête utilisateurs...")
+        cursor.execute("""
+            SELECT id, nom, prenom, email 
+            FROM utilisateur 
+            WHERE id != %s 
+            ORDER BY nom, prenom
+            LIMIT 100
+        """, (current_user['id'],))
+        
+        users = cursor.fetchall()
+        print(f"✅ [SHARING DEBUG] {len(users)} utilisateurs trouvés")
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify([dict(user) for user in users]), 200
+        
+    except Exception as e:
+        print(f"❌ Erreur lors de la récupération des utilisateurs: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Erreur lors de la récupération des utilisateurs'}), 500
+
+@bp.route('/sharing/roles', methods=['GET'])
+@token_required
+def get_roles_for_sharing(current_user):
+    """Récupérer la liste des rôles pour le partage"""
+    try:
+        # Rôles prédéfinis
+        roles = [
+            {'nom': 'Admin', 'description': 'Administrateurs'},
+            {'nom': 'chef_de_service', 'description': 'Chefs de service'},
+            {'nom': 'validateur', 'description': 'Validateurs'},
+            {'nom': 'archiviste', 'description': 'Archivistes'},
+            {'nom': 'Utilisateur', 'description': 'Utilisateurs standard'}
+        ]
+        
+        return jsonify(roles), 200
+        
+    except Exception as e:
+        print(f"❌ Erreur lors de la récupération des rôles: {e}")
+        return jsonify({'error': 'Erreur lors de la récupération des rôles'}), 500
+
+@bp.route('/sharing/organizations', methods=['GET'])
+@token_required
+def get_organizations_for_sharing(current_user):
+    """Récupérer la liste des organisations pour le partage"""
+    try:
+        print(f"🔍 [SHARING DEBUG] Début récupération organisations pour user_id: {current_user['id']}")
+        
+        conn = db_connection()
+        if not conn:
+            print("❌ [SHARING DEBUG] Échec de connexion à la base de données")
+            return jsonify({'error': 'Erreur de connexion à la base de données'}), 500
+            
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        print("🔍 [SHARING DEBUG] Exécution de la requête organisations...")
+        cursor.execute("""
+            SELECT id, nom, description 
+            FROM organisation 
+            ORDER BY nom
+            LIMIT 50
+        """)
+        
+        organizations = cursor.fetchall()
+        print(f"✅ [SHARING DEBUG] {len(organizations)} organisations trouvées")
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify([dict(org) for org in organizations]), 200
+        
+    except Exception as e:
+        print(f"❌ Erreur lors de la récupération des organisations: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Erreur lors de la récupération des organisations'}), 500
 
 # ================================
 # ROUTES ABONNEMENTS NOTIFICATIONS

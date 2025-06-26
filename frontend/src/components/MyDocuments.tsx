@@ -100,6 +100,8 @@ interface Document {
   proprietaire_id?: number;
   dossier_id?: number | null;
   est_archive?: boolean;
+  workflow_statut?: string | null;
+  workflow_nom?: string | null;
 }
 
 interface Folder {
@@ -666,6 +668,37 @@ const MyDocuments: React.FC = () => {
     return `${doc.proprietaire_nom} ${doc.proprietaire_prenom || ''}`.trim();
   };
 
+  const getWorkflowStatusDisplay = (doc: Document) => {
+    if (!doc.workflow_statut) {
+      return null;
+    }
+
+    const statusConfig = {
+      'EN_COURS': {
+        label: 'En cours',
+        color: 'orange',
+        icon: FiClock
+      },
+      'TERMINE': {
+        label: 'Approuvé',
+        color: 'green',
+        icon: FiCheckCircle
+      },
+      'REJETE': {
+        label: 'Rejeté',
+        color: 'red',
+        icon: FiXCircle
+      },
+      'EN_ATTENTE': {
+        label: 'En attente',
+        color: 'yellow',
+        icon: FiClock
+      }
+    };
+
+    return statusConfig[doc.workflow_statut as keyof typeof statusConfig] || null;
+  };
+
   const navigateBack = () => {
     if (breadcrumb.length > 0) {
       // Naviguer vers le dossier parent (avant-dernier élément du breadcrumb)
@@ -883,6 +916,8 @@ const MyDocuments: React.FC = () => {
           maxW="200px"
           value={filterType}
           onChange={(e) => setFilterType(e.target.value)}
+          zIndex={100}
+          position="relative"
         >
           {documentTypes.map((type) => (
             <option key={type} value={type}>
@@ -909,11 +944,6 @@ const MyDocuments: React.FC = () => {
                     key={folder.id}
                     bg="#2a3657"
                     borderColor="#3a445e"
-                    _hover={{ 
-                      borderColor: "#3a8bfd", 
-                      transform: "translateY(-2px)",
-                      boxShadow: "0 4px 12px rgba(58, 139, 253, 0.3)"
-                    }}
                     transition="all 0.2s"
                     position="relative"
                   >
@@ -1012,17 +1042,54 @@ const MyDocuments: React.FC = () => {
                     <Card
                       key={doc.id}
                       bg="#2a3657"
-                      borderColor="#3a445e"
-                      _hover={{ 
-                        borderColor: "#3a8bfd", 
-                        transform: "translateY(-2px)",
-                        boxShadow: "0 4px 12px rgba(58, 139, 253, 0.3)"
-                      }}
+                      borderColor={(() => {
+                        const workflowStatus = getWorkflowStatusDisplay(doc);
+                        if (workflowStatus) {
+                          return workflowStatus.color === 'green' ? '#48BB78' : 
+                                 workflowStatus.color === 'red' ? '#F56565' :
+                                 workflowStatus.color === 'orange' ? '#ED8936' :
+                                 workflowStatus.color === 'yellow' ? '#ECC94B' : '#3a445e';
+                        }
+                        return '#3a445e';
+                      })()}
+                      borderWidth={(() => {
+                        const workflowStatus = getWorkflowStatusDisplay(doc);
+                        return workflowStatus ? '2px' : '1px';
+                      })()}
                       transition="all 0.2s"
                       position="relative"
                     >
                       <CardBody p={4}>
                         <VStack spacing={3} align="stretch">
+                          {/* Indicateur de statut workflow en haut à gauche */}
+                          {(() => {
+                            const workflowStatus = getWorkflowStatusDisplay(doc);
+                            if (workflowStatus) {
+                              return (
+                                <Box 
+                                  position="absolute" 
+                                  top={2} 
+                                  left={2} 
+                                  zIndex={50}
+                                  bg={workflowStatus.color === 'green' ? 'green.500' : 
+                                      workflowStatus.color === 'red' ? 'red.500' :
+                                      workflowStatus.color === 'orange' ? 'orange.500' :
+                                      workflowStatus.color === 'yellow' ? 'yellow.500' : 'gray.500'}
+                                  borderRadius="full"
+                                  p={1}
+                                  boxShadow="md"
+                                >
+                                  <Icon 
+                                    as={workflowStatus.icon as ElementType} 
+                                    boxSize={3} 
+                                    color="white" 
+                                  />
+                                </Box>
+                              );
+                            }
+                            return null;
+                          })()}
+                          
                           <Box position="absolute" top={2} right={2} zIndex={100}>
                             <Menu>
                               <MenuButton
@@ -1142,10 +1209,28 @@ const MyDocuments: React.FC = () => {
                               </Text>
                             </Tooltip>
                             
-                            <HStack spacing={1} justify="center">
+                            <HStack spacing={1} justify="center" wrap="wrap">
                               <Badge size="xs" colorScheme="blue">
                                 {doc.type_document || 'Unknown'}
                               </Badge>
+                              {(() => {
+                                const workflowStatus = getWorkflowStatusDisplay(doc);
+                                if (workflowStatus) {
+                                  return (
+                                    <Badge 
+                                      size="xs" 
+                                      colorScheme={workflowStatus.color}
+                                      display="flex"
+                                      alignItems="center"
+                                      gap={1}
+                                    >
+                                      <Icon as={workflowStatus.icon as ElementType} boxSize={2} />
+                                      {workflowStatus.label}
+                                    </Badge>
+                                  );
+                                }
+                                return null;
+                              })()}
                             </HStack>
                             
                             <Text fontSize="xs" color="gray.400" textAlign="center">
@@ -1180,9 +1265,10 @@ const MyDocuments: React.FC = () => {
 
       {/* Modals */}
       <ShareModal
-        isOpen={isShareOpen}
+        open={isShareOpen}
         onClose={onShareClose}
-        documentId={selectedDocument}
+        documentId={selectedDocument || 0}
+        documentTitle={documents.find(d => d.id === selectedDocument)?.titre || "Document"}
         onShareSuccess={refreshDocuments}
       />
 

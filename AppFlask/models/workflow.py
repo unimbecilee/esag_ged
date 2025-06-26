@@ -174,13 +174,15 @@ class Workflow:
 
     @staticmethod
     def get_etapes(workflow_id: int) -> List[Dict]:
-        """Récupérer les étapes d'un workflow"""
+        """Récupérer les étapes d'un workflow avec leurs approbateurs"""
         conn = db_connection()
         if not conn:
             return []
         
         try:
             cursor = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # Récupérer les étapes
             cursor.execute("""
                 SELECT e.*, 
                        COUNT(wa.id) as approbateurs_count
@@ -191,7 +193,49 @@ class Workflow:
                 ORDER BY e.ordre
             """, (workflow_id,))
             
-            return cursor.fetchall()
+            etapes = cursor.fetchall()
+            
+            # Pour chaque étape, récupérer ses approbateurs
+            for etape in etapes:
+                cursor.execute("""
+                    SELECT wa.*,
+                           u.nom as utilisateur_nom, u.prenom as utilisateur_prenom,
+                           r.nom as role_nom,
+                           o.nom as organisation_nom
+                    FROM workflow_approbateur wa
+                    LEFT JOIN utilisateur u ON wa.utilisateur_id = u.id
+                    LEFT JOIN role r ON wa.role_id = r.id
+                    LEFT JOIN organisation o ON wa.organisation_id = o.id
+                    WHERE wa.etape_id = %s
+                """, (etape['id'],))
+                
+                approbateurs_raw = cursor.fetchall()
+                approbateurs = []
+                
+                for app in approbateurs_raw:
+                    if app['utilisateur_id']:
+                        approbateurs.append({
+                            'type': 'utilisateur',
+                            'id': app['utilisateur_id'],
+                            'nom': app['utilisateur_nom'],
+                            'prenom': app['utilisateur_prenom']
+                        })
+                    elif app['role_id']:
+                        approbateurs.append({
+                            'type': 'role',
+                            'id': app['role_id'],
+                            'nom': app['role_nom']
+                        })
+                    elif app['organisation_id']:
+                        approbateurs.append({
+                            'type': 'organisation',
+                            'id': app['organisation_id'],
+                            'nom': app['organisation_nom']
+                        })
+                
+                etape['approbateurs'] = approbateurs
+            
+            return etapes
             
         finally:
             cursor.close()
