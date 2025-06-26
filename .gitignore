@@ -48,6 +48,7 @@ frontend/yarn-error.log*
 # IDE et éditeurs
 .idea/
 .vscode/
+.cursor/rules/
 *.swp
 *.swo
 *~
