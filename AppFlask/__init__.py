@@ -64,7 +64,11 @@ def create_app():
     def handle_preflight():
         if request.method == "OPTIONS":
             origin = request.headers.get('Origin')
-            if origin == 'http://localhost:3000':
+            if origin in [
+                'http://localhost:3000',
+                'https://esag-ged.vercel.app',
+                'https://*.vercel.app'
+            ]:
                 response = app.make_default_options_response()
                 response.headers['Access-Control-Allow-Origin'] = origin
                 response.headers['Access-Control-Allow-Credentials'] = 'true'
