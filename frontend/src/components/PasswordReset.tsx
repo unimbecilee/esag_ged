@@ -137,7 +137,7 @@ const PasswordReset: React.FC = () => {
 
               <Button
                 as={Link}
-                to="/auth/login"
+                to="/login"
                 variant="outline"
                 colorScheme="blue"
                 w="full"
@@ -247,7 +247,7 @@ const PasswordReset: React.FC = () => {
             <HStack spacing={4} w="full" justify="center">
               <Button
                 as={Link}
-                to="/auth/login"
+                to="/login"
                 variant="ghost"
                 size="sm"
               >

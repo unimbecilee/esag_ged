@@ -73,7 +73,7 @@ def update_test_user():
 
 
 # Connexion
-@auth_bp.route('/auth/login', methods=['GET', 'POST', 'OPTIONS'])
+@auth_bp.route('/login', methods=['GET', 'POST', 'OPTIONS'])
 def login():
     if request.method == 'POST':
         try:

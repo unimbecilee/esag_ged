@@ -142,7 +142,7 @@ def handle_users_options():
 def handle_auth_me_options():
     return '', 200
 
-@bp.route('/auth/login', methods=['OPTIONS'])
+@bp.route('/login', methods=['OPTIONS'])
 def handle_auth_login_options():
     return '', 200
 
@@ -317,7 +317,7 @@ def get_users(current_user):
         traceback.print_exc()
         return jsonify({'message': f'Erreur lors de la récupération des utilisateurs: {str(e)}'}), 500
 
-@bp.route('/auth/login', methods=['POST'])
+@bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
     email = data.get('email')
@@ -576,7 +576,7 @@ def create_user(current_user):
                     'user_email': data['email'],
                     'user_role': role_value,
                     'generated_password': generated_password,
-                    'login_url': 'http://localhost:3000/auth/login'
+                    'login_url': 'http://localhost:3000/login'
                 }
                 
                 # Envoyer l'email de bienvenue
@@ -887,7 +887,7 @@ def reset_password():
                 'user_name': f"{user['prenom']} {user['nom']}",
                 'user_email': user['email'],
                 'new_password': new_password,
-                'login_url': 'http://localhost:3000/auth/login'
+                'login_url': 'http://localhost:3000/login'
             }
             
             # Envoyer l'email de réinitialisation
@@ -978,7 +978,7 @@ def admin_reset_user_password(current_user):
                 'user_email': user['email'],
                 'new_password': new_password,
                 'admin_name': f"{current_user['prenom']} {current_user['nom']}",
-                'login_url': 'http://localhost:3000/auth/login'
+                'login_url': 'http://localhost:3000/login'
             }
             
             # Envoyer l'email de réinitialisation
