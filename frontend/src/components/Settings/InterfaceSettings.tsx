@@ -377,3 +377,4 @@ const InterfaceSettings: React.FC<InterfaceSettingsProps> = ({ currentUser }) =>
 };
 
 export default InterfaceSettings; 
+

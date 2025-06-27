@@ -62,7 +62,7 @@ const CreateOrganizationModal: React.FC<CreateOrganizationModalProps> = ({ isOpe
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/users', {
+      const response = await fetch('https://web-production-ae27.up.railway.app/api/users', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -118,7 +118,7 @@ const CreateOrganizationModal: React.FC<CreateOrganizationModalProps> = ({ isOpe
     setIsLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/organizations', {
+      const response = await fetch('https://web-production-ae27.up.railway.app/api/organizations', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -266,3 +266,4 @@ const CreateOrganizationModal: React.FC<CreateOrganizationModalProps> = ({ isOpe
 };
 
 export default CreateOrganizationModal; 
+

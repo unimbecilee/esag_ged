@@ -50,7 +50,7 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/users', {
+      const response = await fetch('https://web-production-ae27.up.railway.app/api/users', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -90,7 +90,7 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/organizations/${organizationId}/members`, {
+      const response = await fetch(`https://web-production-ae27.up.railway.app/api/organizations/${organizationId}/members`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -187,3 +187,4 @@ const AddMemberModal: React.FC<AddMemberModalProps> = ({
 };
 
 export default AddMemberModal; 
+

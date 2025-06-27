@@ -68,7 +68,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `http://localhost:5000/api/documents/${documentId}/preview?page=${currentPage}`,
+        `https://web-production-ae27.up.railway.app/api/documents/${documentId}/preview?page=${currentPage}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -102,7 +102,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `http://localhost:5000/api/documents/${documentId}/metadata`,
+        `https://web-production-ae27.up.railway.app/api/documents/${documentId}/metadata`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -367,3 +367,4 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
 };
 
 export default DocumentPreview;
+

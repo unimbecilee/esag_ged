@@ -28,7 +28,7 @@ interface Config {
 }
 
 const config: Config = {
-  API_URL: process.env.REACT_APP_API_URL || 'http://localhost:5000/api',
+  API_URL: process.env.REACT_APP_API_URL || 'https://web-production-ae27.up.railway.app/api',
   APP_NAME: 'ESAG GED',
   APP_VERSION: '2.0.0',
   MAX_FILE_SIZE: 100 * 1024 * 1024, // 100MB

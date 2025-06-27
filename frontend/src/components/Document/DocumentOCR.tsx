@@ -97,7 +97,7 @@ const DocumentOCR: React.FC<DocumentOCRProps> = ({
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `http://localhost:5000/api/documents/${documentId}/metadata`,
+        `https://web-production-ae27.up.railway.app/api/documents/${documentId}/metadata`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -126,7 +126,7 @@ const DocumentOCR: React.FC<DocumentOCRProps> = ({
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `http://localhost:5000/api/documents/${documentId}/ocr`,
+        `https://web-production-ae27.up.railway.app/api/documents/${documentId}/ocr`,
         {
           method: 'POST',
           headers: {
@@ -488,3 +488,4 @@ const DocumentOCR: React.FC<DocumentOCRProps> = ({
 };
 
 export default DocumentOCR;
+

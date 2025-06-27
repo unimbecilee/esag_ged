@@ -128,7 +128,7 @@ const OrganizationManager: React.FC = () => {
   const fetchOrganizations = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/organizations', {
+      const response = await fetch('https://web-production-ae27.up.railway.app/api/organizations', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -159,7 +159,7 @@ const OrganizationManager: React.FC = () => {
       const token = localStorage.getItem('token');
       
       // Récupérer les membres
-      const membersResponse = await fetch(`http://localhost:5000/api/organizations/${orgId}/members`, {
+      const membersResponse = await fetch(`https://web-production-ae27.up.railway.app/api/organizations/${orgId}/members`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -172,7 +172,7 @@ const OrganizationManager: React.FC = () => {
       }
 
       // Récupérer les documents
-      const documentsResponse = await fetch(`http://localhost:5000/api/organizations/${orgId}/documents`, {
+      const documentsResponse = await fetch(`https://web-production-ae27.up.railway.app/api/organizations/${orgId}/documents`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -205,7 +205,7 @@ const OrganizationManager: React.FC = () => {
     setIsDeleting(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/organizations/${selectedOrg.id}`, {
+      const response = await fetch(`https://web-production-ae27.up.railway.app/api/organizations/${selectedOrg.id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -245,7 +245,7 @@ const OrganizationManager: React.FC = () => {
     setIsRemovingMember(memberId);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/organizations/${selectedOrg.id}/members/${memberId}`, {
+      const response = await fetch(`https://web-production-ae27.up.railway.app/api/organizations/${selectedOrg.id}/members/${memberId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -281,7 +281,7 @@ const OrganizationManager: React.FC = () => {
   const handleViewDocument = async (documentId: number) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/documents/${documentId}/view`, {
+      const response = await fetch(`https://web-production-ae27.up.railway.app/api/documents/${documentId}/view`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -311,7 +311,7 @@ const OrganizationManager: React.FC = () => {
     setIsRemovingDocument(documentId);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/organizations/${selectedOrg.id}/documents/${documentId}`, {
+      const response = await fetch(`https://web-production-ae27.up.railway.app/api/organizations/${selectedOrg.id}/documents/${documentId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -697,3 +697,4 @@ const OrganizationManager: React.FC = () => {
 };
 
 export default OrganizationManager; 
+

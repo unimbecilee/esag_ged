@@ -529,3 +529,4 @@ const TrashSimple: React.FC = () => {
 };
 
 export default TrashSimple; 
+

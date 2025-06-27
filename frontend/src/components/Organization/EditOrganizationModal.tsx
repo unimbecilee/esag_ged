@@ -80,7 +80,7 @@ const EditOrganizationModal: React.FC<EditOrganizationModalProps> = ({
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/organizations/${organization.id}`, {
+      const response = await fetch(`https://web-production-ae27.up.railway.app/api/organizations/${organization.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -254,3 +254,4 @@ const EditOrganizationModal: React.FC<EditOrganizationModalProps> = ({
 };
 
 export default EditOrganizationModal; 
+

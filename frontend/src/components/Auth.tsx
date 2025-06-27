@@ -115,3 +115,4 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
 };
 
 export default Auth;
+

@@ -150,7 +150,7 @@ const SharedDocuments: React.FC = () => {
   const loadSharedDocuments = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/shared-documents');
+      const response = await api.get('/api/shared-documents');
       console.log('Données reçues:', response.data);
       setDocuments(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
@@ -676,3 +676,4 @@ const SharedDocuments: React.FC = () => {
 };
 
 export default SharedDocuments; 
+

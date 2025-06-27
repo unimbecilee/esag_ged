@@ -9,7 +9,7 @@ import { ChevronDownIcon, DeleteIcon } from '@chakra-ui/icons';
 import { useAsyncOperation } from '../../hooks/useAsyncOperation';
 import { checkAuthToken } from '../../utils/errorHandling';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_URL = process.env.REACT_APP_API_URL || 'https://web-production-ae27.up.railway.app';
 
 interface User {
   id: number;
@@ -431,3 +431,4 @@ const EditWorkflowModal: React.FC<EditWorkflowModalProps> = ({
 };
 
 export default EditWorkflowModal; 
+

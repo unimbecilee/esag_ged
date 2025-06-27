@@ -22,3 +22,4 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ currentUser }) => {
 };
 
 export default ProfileSettings; 
+

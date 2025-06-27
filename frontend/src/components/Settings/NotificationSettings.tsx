@@ -433,3 +433,4 @@ const NotificationSettings: React.FC<NotificationSettingsProps> = ({ currentUser
 };
 
 export default NotificationSettings;
+

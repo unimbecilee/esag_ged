@@ -472,3 +472,4 @@ const RecentDocuments: React.FC = () => {
 };
 
 export default RecentDocuments;
+

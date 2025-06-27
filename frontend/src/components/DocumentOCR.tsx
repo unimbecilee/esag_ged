@@ -275,3 +275,4 @@ const DocumentOCR: React.FC<DocumentOCRProps> = ({
 };
 
 export default DocumentOCR; 
+

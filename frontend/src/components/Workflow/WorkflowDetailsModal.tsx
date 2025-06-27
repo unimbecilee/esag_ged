@@ -312,3 +312,4 @@ const WorkflowDetailsModal: React.FC<WorkflowDetailsModalProps> = ({
 };
 
 export default WorkflowDetailsModal; 
+

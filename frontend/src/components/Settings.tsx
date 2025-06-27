@@ -135,7 +135,7 @@ const Settings: React.FC = () => {
   const fetchCurrentUser = async () => {
     try {
       const token = checkAuthToken();
-      const response = await fetch(`${API_URL}/auth/me`, {
+      const response = await fetch(`${API_URL}/api/auth/me`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -155,7 +155,7 @@ const Settings: React.FC = () => {
     const result = await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/settings/user`, {
+        const response = await fetch(`${API_URL}/api/settings/user`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -207,7 +207,7 @@ const Settings: React.FC = () => {
     await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/settings/user`, {
+        const response = await fetch(`${API_URL}/api/settings/user`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -738,3 +738,4 @@ const Settings: React.FC = () => {
 };
 
 export default Settings; 
+

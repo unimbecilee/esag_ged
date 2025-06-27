@@ -90,7 +90,7 @@ const FavoriteDocuments: React.FC = () => {
             throw new Error('Token non trouvé');
           }
 
-          const response = await fetch(`${config.API_URL}/documents/favorites`, {
+          const response = await fetch(`${config.API_URL}/api/documents/favorites`, {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
@@ -421,3 +421,4 @@ const FavoriteDocuments: React.FC = () => {
 };
 
 export default FavoriteDocuments; 
+

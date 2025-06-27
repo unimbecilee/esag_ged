@@ -297,3 +297,4 @@ const HistoryLog: React.FC<HistoryLogProps> = ({ filterType = 'all' }) => {
 };
 
 export default HistoryLog; 
+

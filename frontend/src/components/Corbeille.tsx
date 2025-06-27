@@ -380,3 +380,4 @@ const Corbeille: React.FC = () => {
 };
 
 export default Corbeille;
+

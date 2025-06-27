@@ -943,3 +943,4 @@ const Scan: React.FC = () => {
 };
 
 export default Scan;
+

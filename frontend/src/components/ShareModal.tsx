@@ -42,6 +42,9 @@ import {
 } from '@chakra-ui/react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import config from '../config';
+
+const API_URL = config.API_URL;
 
 // Composant d'icône personnalisé avec emojis
 const CustomIcon: React.FC<{ type: string; size?: 'sm' | 'md' | 'lg' }> = ({ type, size = 'sm' }) => {
@@ -201,19 +204,19 @@ const ShareModal: React.FC<ShareModalProps> = ({
     setLoadingData(true);
     try {
       const [usersRes, rolesRes, orgsRes] = await Promise.all([
-        fetch('http://localhost:5000/api/sharing/users', {
+        fetch(`${API_URL}/api/sharing/users`, {
           headers: { 
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
             'Content-Type': 'application/json'
           }
         }),
-        fetch('http://localhost:5000/api/sharing/roles', {
+        fetch(`${API_URL}/api/sharing/roles`, {
           headers: { 
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
             'Content-Type': 'application/json'
           }
         }),
-        fetch('http://localhost:5000/api/sharing/organizations', {
+        fetch(`${API_URL}/api/sharing/organizations`, {
           headers: { 
             'Authorization': `Bearer ${localStorage.getItem('token')}`,
             'Content-Type': 'application/json'
@@ -263,7 +266,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
 
   const loadExistingShares = async () => {
     try {
-      const response = await fetch(`http://localhost:5000/api/documents/${documentId}/shares`, {
+      const response = await fetch(`${API_URL}/api/documents/${documentId}/shares`, {
         headers: { 
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'application/json'
@@ -322,7 +325,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
         date_expiration: expirationDate ? expirationDate.toISOString() : null
       };
 
-      const response = await fetch(`http://localhost:5000/api/documents/${documentId}/share`, {
+      const response = await fetch(`${API_URL}/api/documents/${documentId}/share`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -363,7 +366,7 @@ const ShareModal: React.FC<ShareModalProps> = ({
 
   const handleRevokeShare = async (shareId: number) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/shares/${shareId}`, {
+      const response = await fetch(`${API_URL}/api/shares/${shareId}`, {
         method: 'DELETE',
         headers: { 
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -790,3 +793,4 @@ const ShareModal: React.FC<ShareModalProps> = ({
 };
 
 export default ShareModal; 
+

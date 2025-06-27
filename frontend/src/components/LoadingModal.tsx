@@ -45,3 +45,4 @@ const LoadingModal: React.FC<LoadingModalProps> = ({ isOpen, message = "Chargeme
 };
 
 export default LoadingModal; 
+

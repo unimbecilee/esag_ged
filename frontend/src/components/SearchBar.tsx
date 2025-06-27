@@ -53,7 +53,7 @@ const SearchBar: React.FC = () => {
       }
 
       setIsLoading(true);
-      const response = await fetch(`http://localhost:5000/api/documents/search?q=${encodeURIComponent(query)}`, {
+      const response = await fetch(`https://web-production-ae27.up.railway.app/api/documents/search?q=${encodeURIComponent(query)}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -186,3 +186,4 @@ const SearchBar: React.FC = () => {
 };
 
 export default SearchBar; 
+

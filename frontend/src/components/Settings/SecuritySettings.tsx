@@ -271,3 +271,4 @@ const SecuritySettings: React.FC<SecuritySettingsProps> = ({ currentUser }) => {
 };
 
 export default SecuritySettings; 
+

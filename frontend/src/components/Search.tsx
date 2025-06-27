@@ -89,7 +89,7 @@ const Search: React.FC = () => {
   const handleDownload = async (documentId: number) => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/documents/${documentId}/download`,
+        `https://web-production-ae27.up.railway.app/api/documents/${documentId}/download`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -255,3 +255,4 @@ const Search: React.FC = () => {
 };
 
 export default Search; 
+

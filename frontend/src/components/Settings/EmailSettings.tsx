@@ -23,3 +23,4 @@ const EmailSettings: React.FC<EmailSettingsProps> = ({ currentUser }) => {
 };
 
 export default EmailSettings; 
+

@@ -57,7 +57,7 @@ const AddDocumentModal: React.FC<AddDocumentModalProps> = ({
   const fetchAvailableDocuments = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/documents/available', {
+      const response = await fetch('https://web-production-ae27.up.railway.app/api/documents/available', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -97,7 +97,7 @@ const AddDocumentModal: React.FC<AddDocumentModalProps> = ({
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:5000/api/organizations/${organizationId}/documents`, {
+      const response = await fetch(`https://web-production-ae27.up.railway.app/api/organizations/${organizationId}/documents`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -188,3 +188,4 @@ const AddDocumentModal: React.FC<AddDocumentModalProps> = ({
 };
 
 export default AddDocumentModal; 
+

@@ -15,6 +15,7 @@ import {
   useToast,
   VStack
 } from '@chakra-ui/react';
+import config from '../../config';
 
 interface SimpleCreateOrganizationModalProps {
   isOpen: boolean;
@@ -45,7 +46,7 @@ const SimpleCreateOrganizationModal: React.FC<SimpleCreateOrganizationModalProps
     setIsLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:5000/api/organizations', {
+              const response = await fetch(`${config.API_URL}/api/organizations`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -126,3 +127,4 @@ const SimpleCreateOrganizationModal: React.FC<SimpleCreateOrganizationModalProps
 };
 
 export default SimpleCreateOrganizationModal; 
+

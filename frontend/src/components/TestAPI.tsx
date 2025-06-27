@@ -26,7 +26,7 @@ const TestAPI: React.FC = () => {
       // Test 1: Connexion simple
       setResult("🔍 Test 1: Connexion au serveur Flask...\n");
       
-      const healthResponse = await fetch("http://localhost:5000/", {
+      const healthResponse = await fetch("https://web-production-ae27.up.railway.app/", {
         method: "GET",
         mode: "cors",
       });
@@ -37,7 +37,7 @@ const TestAPI: React.FC = () => {
       // Test 2: Login
       setResult(prev => prev + "🔐 Test 2: Connexion utilisateur...\n");
       
-      const loginResponse = await fetch("http://localhost:5000/api/login", {
+      const loginResponse = await fetch("https://web-production-ae27.up.railway.app/api/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -57,7 +57,7 @@ const TestAPI: React.FC = () => {
         // Test 3: API Trash
         setResult(prev => prev + "🗑️ Test 3: API Trash...\n");
         
-        const trashResponse = await fetch("http://localhost:5000/api/trash", {
+        const trashResponse = await fetch("https://web-production-ae27.up.railway.app/api/trash", {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`,
@@ -187,3 +187,4 @@ const TestAPI: React.FC = () => {
 };
 
 export default TestAPI; 
+

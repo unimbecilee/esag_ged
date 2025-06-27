@@ -185,3 +185,4 @@ const SystemLogs: React.FC<SystemLogsProps> = ({ filterType = "all" }) => {
 };
 
 export default SystemLogs; 
+

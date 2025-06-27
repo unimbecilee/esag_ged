@@ -336,3 +336,4 @@ const DocumentCheckout: React.FC<DocumentCheckoutProps> = ({
 };
 
 export default DocumentCheckout; 
+

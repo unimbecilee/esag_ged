@@ -41,3 +41,4 @@ const PrivacySettings: React.FC<PrivacySettingsProps> = ({ currentUser }) => {
 };
 
 export default PrivacySettings; 
+
