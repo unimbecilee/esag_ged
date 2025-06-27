@@ -45,9 +45,9 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
       console.log("Données reçues:", data);
 
       if (response.ok) {
-        localStorage.setItem("token", data.token);
+        localStorage.setItem("token", data.access_token);
         localStorage.setItem("user", JSON.stringify(data.user));
-        onAuthSuccess(data.token);
+        onAuthSuccess(data.access_token);
         toast({
           title: "Connexion réussie",
           description: "Bienvenue dans votre espace",
