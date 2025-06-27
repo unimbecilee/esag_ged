@@ -117,7 +117,7 @@ const Users: React.FC = () => {
 
       console.log("Tentative de récupération des utilisateurs...");
       
-          const response = await fetch(`${API_URL}/users`, {
+          const response = await fetch(`${API_URL}/api/users`, {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
@@ -169,7 +169,7 @@ const Users: React.FC = () => {
     await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/users`, {
+        const response = await fetch(`${API_URL}/api/users`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -241,7 +241,7 @@ const Users: React.FC = () => {
     await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/users/${selectedUser.id}`, {
+        const response = await fetch(`${API_URL}/api/users/${selectedUser.id}`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -282,7 +282,7 @@ const Users: React.FC = () => {
     await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/users/${selectedUser.id}`, {
+        const response = await fetch(`${API_URL}/api/users/${selectedUser.id}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`,

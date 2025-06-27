@@ -60,6 +60,9 @@ import {
 import { ElementType } from 'react';
 import { useAuthStatus } from "../hooks/useAuthStatus";
 import PendingApprovals from './ValidationWorkflow/PendingApprovals';
+import config from '../config';
+
+const API_URL = config.API_URL;
 
 interface Document {
   id: number;
@@ -145,10 +148,10 @@ const Dashboard: React.FC = () => {
       };
 
       const [usersRes, docsRes, foldersRes, archivesRes] = await Promise.all([
-        fetch("http://localhost:5000/api/users/count", { headers }),
-        fetch("http://localhost:5000/api/documents/count", { headers }),
-        fetch("http://localhost:5000/api/folders/count", { headers }),
-        fetch("http://localhost:5000/api/archives/count", { headers }),
+        fetch(`${API_URL}/api/users/count`, { headers }),
+        fetch(`${API_URL}/api/documents/count`, { headers }),
+        fetch(`${API_URL}/api/folders/count`, { headers }),
+        fetch(`${API_URL}/api/archives/count`, { headers }),
       ]);
 
       const [users, documents, dossiers, archives] = await Promise.all([
@@ -179,7 +182,7 @@ const Dashboard: React.FC = () => {
   const fetchRecentDocs = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch("http://localhost:5000/api/documents/recent", {
+      const res = await fetch(`${API_URL}/api/documents/recent`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -201,7 +204,7 @@ const Dashboard: React.FC = () => {
   const fetchActivities = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch('http://localhost:5000/api/documents/recent-activities', {
+      const res = await fetch(`${API_URL}/api/documents/recent-activities`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -230,13 +233,13 @@ const Dashboard: React.FC = () => {
       
       // Récupérer les notifications et le compteur séparément
       const [notificationsRes, unreadCountRes] = await Promise.all([
-        fetch('http://localhost:5000/api/notifications', {
+        fetch(`${API_URL}/api/notifications`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           }
         }),
-        fetch('http://localhost:5000/api/notifications/unread-count', {
+        fetch(`${API_URL}/api/notifications/unread-count`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -306,7 +309,7 @@ const Dashboard: React.FC = () => {
       const token = localStorage.getItem('token');
       
       // Utiliser les bonnes APIs comme dans WorkflowManagement
-      const statsResponse = await fetch(`http://localhost:5000/api/workflow-stats`, {
+      const statsResponse = await fetch(`${API_URL}/api/workflow-stats`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
