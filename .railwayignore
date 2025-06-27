@@ -3,4 +3,7 @@ frontend/
 .git/
 node_modules/
 .env
-*.log 
+*.log
+package.json
+package-lock.json
+tsconfig.json 
