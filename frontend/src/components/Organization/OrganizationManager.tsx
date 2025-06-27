@@ -121,6 +121,9 @@ const OrganizationManager: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState<'info' | 'membres' | 'documents' | 'workflows'>('info');
   const [members, setMembers] = useState<OrganizationMember[]>([]);
   const [documents, setDocuments] = useState<OrganizationDocument[]>([]);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isRemovingMember, setIsRemovingMember] = useState<number | null>(null);
+  const [isRemovingDocument, setIsRemovingDocument] = useState<number | null>(null);
 
   const fetchOrganizations = async () => {
     try {
@@ -197,8 +200,9 @@ const OrganizationManager: React.FC = () => {
   }, []);
 
   const handleDelete = async () => {
-    if (!selectedOrg) return;
+    if (!selectedOrg || isDeleting) return;
 
+    setIsDeleting(true);
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:5000/api/organizations/${selectedOrg.id}`, {
@@ -230,13 +234,15 @@ const OrganizationManager: React.FC = () => {
         isClosable: true
       });
     } finally {
+      setIsDeleting(false);
       onDeleteClose();
     }
   };
 
   const handleRemoveMember = async (memberId: number) => {
-    if (!selectedOrg) return;
+    if (!selectedOrg || isRemovingMember === memberId) return;
 
+    setIsRemovingMember(memberId);
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:5000/api/organizations/${selectedOrg.id}/members/${memberId}`, {
@@ -267,6 +273,8 @@ const OrganizationManager: React.FC = () => {
         duration: 5000,
         isClosable: true
       });
+    } finally {
+      setIsRemovingMember(null);
     }
   };
 
@@ -298,8 +306,9 @@ const OrganizationManager: React.FC = () => {
   };
 
   const handleRemoveDocument = async (documentId: number) => {
-    if (!selectedOrg) return;
+    if (!selectedOrg || isRemovingDocument === documentId) return;
 
+    setIsRemovingDocument(documentId);
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`http://localhost:5000/api/organizations/${selectedOrg.id}/documents/${documentId}`, {
@@ -330,6 +339,8 @@ const OrganizationManager: React.FC = () => {
         duration: 5000,
         isClosable: true
       });
+    } finally {
+      setIsRemovingDocument(null);
     }
   };
 
@@ -435,6 +446,9 @@ const OrganizationManager: React.FC = () => {
                           variant="ghost"
                           leftIcon={<TrashIcon boxSize={4} />}
                           onClick={() => handleRemoveMember(member.id)}
+                          isLoading={isRemovingMember === member.id}
+                          loadingText="Suppression..."
+                          isDisabled={isRemovingMember !== null}
                         >
                           Retirer
                         </Button>
@@ -491,6 +505,9 @@ const OrganizationManager: React.FC = () => {
                           variant="ghost"
                           leftIcon={<TrashIcon boxSize={4} />}
                           onClick={() => handleRemoveDocument(doc.id)}
+                          isLoading={isRemovingDocument === doc.id}
+                          loadingText="Suppression..."
+                          isDisabled={isRemovingDocument !== null}
                         >
                           Retirer
                         </Button>
@@ -671,6 +688,7 @@ const OrganizationManager: React.FC = () => {
             onConfirm={handleDelete}
             title="Supprimer l'organisation"
             message="Êtes-vous sûr de vouloir supprimer cette organisation ? Cette action est irréversible."
+            isLoading={isDeleting}
           />
         </>
       )}

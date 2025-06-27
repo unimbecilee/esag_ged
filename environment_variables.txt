@@ -1,0 +1,25 @@
+# Variables d'environnement nécessaires pour ESAG GED
+# Copier ces variables dans Railway/Render
+
+SECRET_KEY=votre_cle_secrete_super_longue_et_complexe
+FLASK_ENV=production
+
+# Base de données PostgreSQL (déjà configurée)
+DATABASE_URL=postgresql://thefau:Passecale2002@@postgresql-thefau.alwaysdata.net:5432/thefau_archive
+
+# Configuration Email
+MAIL_SERVER=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USE_TLS=True
+MAIL_USE_SSL=False
+MAIL_USERNAME=mainuser1006@gmail.com
+MAIL_PASSWORD=dzizhixzevtlwgle
+MAIL_DEFAULT_SENDER=mainuser1006@gmail.com
+
+# Configuration Cloudinary (si utilisé)
+# CLOUDINARY_CLOUD_NAME=votre_cloud_name
+# CLOUDINARY_API_KEY=votre_api_key
+# CLOUDINARY_API_SECRET=votre_api_secret
+
+# Port (Railway le définit automatiquement)
+PORT=5000 

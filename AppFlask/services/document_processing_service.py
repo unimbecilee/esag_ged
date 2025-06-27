@@ -12,7 +12,11 @@ import numpy as np
 from pdf2image import convert_from_path, convert_from_bytes
 import fitz  # PyMuPDF
 from docx import Document
-import magic
+try:
+    import magic
+    MAGIC_AVAILABLE = True
+except ImportError:
+    MAGIC_AVAILABLE = False
 import base64
 from AppFlask.db import db_connection
 from psycopg2.extras import RealDictCursor
@@ -36,13 +40,33 @@ class DocumentProcessingService:
         if os.name == 'nt':  # Windows
             pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
     
+    def _get_mime_type_from_extension(self, file_path: str) -> str:
+        """Obtenir le type MIME depuis l'extension de fichier (fallback si magic n'est pas disponible)"""
+        ext = os.path.splitext(file_path)[1].lower()
+        mime_types = {
+            '.pdf': 'application/pdf',
+            '.doc': 'application/msword',
+            '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.png': 'image/png',
+            '.gif': 'image/gif',
+            '.bmp': 'image/bmp',
+            '.tiff': 'image/tiff',
+            '.txt': 'text/plain',
+            '.html': 'text/html',
+            '.xml': 'text/xml',
+            '.csv': 'text/csv'
+        }
+        return mime_types.get(ext, 'application/octet-stream')
+    
     def extract_metadata(self, file_path: str) -> Dict:
         """Extraire les métadonnées d'un document"""
         try:
             metadata = {
                 'file_size': os.path.getsize(file_path),
                 'last_modified': datetime.fromtimestamp(os.path.getmtime(file_path)).isoformat(),
-                'mime_type': magic.from_file(file_path, mime=True) if magic else None,
+                'mime_type': magic.from_file(file_path, mime=True) if MAGIC_AVAILABLE else self._get_mime_type_from_extension(file_path),
                 'pages': 0,
                 'text_content': '',
                 'language': 'fr',

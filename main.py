@@ -1,3 +1,4 @@
+import os
 from AppFlask import create_app
 from AppFlask.routes import (
     auth_routes,
@@ -18,4 +19,7 @@ app = create_app()
 app.config['UPLOAD_FOLDER'] = "uploads/"
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    # Configuration pour le déploiement
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('FLASK_ENV') != 'production'
+    app.run(host='0.0.0.0', port=port, debug=debug)
