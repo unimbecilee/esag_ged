@@ -653,7 +653,8 @@ def delete_user(current_user, user_id):
             {"table": "trash", "column": "deleted_by"},
             {"table": "trash", "column": "restored_by"},
             {"table": "document", "column": "proprietaire_id"},
-            {"table": "historique", "column": "utilisateur_id"}
+            {"table": "historique", "column": "utilisateur_id"},
+            {"table": "system_logs", "column": "user_id"}
         ]
         
         # Mettre à jour les références dans les tables
