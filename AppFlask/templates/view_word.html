@@ -1,6 +1,0 @@
-{% extends "base.html" %}
-{% block content %}
-  <h2>{{ title }}</h2>
-  <div>{{ content|safe }}</div>
-  <a href="{{ url_for('document.list_documents') }}" class="btn btn-primary mt-3">← Retour</a>
-{% endblock %}
