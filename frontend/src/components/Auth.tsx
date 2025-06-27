@@ -30,7 +30,7 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
 
     try {
       console.log("Tentative de connexion avec:", { email, password });
-      const response = await fetch(`${API_URL}/login`, {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         credentials: "include",
         headers: {

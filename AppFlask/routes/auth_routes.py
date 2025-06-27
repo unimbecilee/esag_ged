@@ -73,7 +73,7 @@ def update_test_user():
 
 
 # Connexion
-@auth_bp.route('/login', methods=['GET', 'POST', 'OPTIONS'])
+@auth_bp.route('/auth/login', methods=['GET', 'POST', 'OPTIONS'])
 def login():
     if request.method == 'POST':
         try:
@@ -110,6 +110,7 @@ def login():
                 (email,)
             )
             user = cursor.fetchone()
+            logger.info(f"Résultat SQL user: {user}")
 
             if user and check_password_hash(user[2], password):
                 # Création du token JWT
@@ -159,7 +160,9 @@ def login():
                 return jsonify({'message': 'Email ou mot de passe incorrect'}), 401
 
         except Exception as e:
+            import traceback
             logger.error(f"Erreur lors de la connexion: {str(e)}")
+            logger.error(traceback.format_exc())
             logging_service.log_event(
                 level='ERROR',
                 event_type='SYSTEM_ERROR',

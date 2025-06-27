@@ -111,7 +111,7 @@ const Users: React.FC = () => {
       showLoading("Chargement des utilisateurs...");
       const token = localStorage.getItem('token');
       if (!token) {
-        navigate('/login');
+        navigate('/auth/login');
         return;
       }
 
@@ -129,7 +129,7 @@ const Users: React.FC = () => {
 
           if (response.status === 401) {
             localStorage.removeItem('token');
-            navigate('/login');
+            navigate('/auth/login');
             throw new Error('Session expirée, veuillez vous reconnecter');
           }
 

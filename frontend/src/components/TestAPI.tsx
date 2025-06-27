@@ -37,7 +37,7 @@ const TestAPI: React.FC = () => {
       // Test 2: Login
       setResult(prev => prev + "🔐 Test 2: Connexion utilisateur...\n");
       
-      const loginResponse = await fetch("http://localhost:5000/api/login", {
+      const loginResponse = await fetch("http://localhost:5000/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -109,7 +109,7 @@ const TestAPI: React.FC = () => {
       setResult("🔍 Test avec proxy React...\n");
       
       // Test avec URL relative (via proxy)
-      const response = await fetch("/api/login", {
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

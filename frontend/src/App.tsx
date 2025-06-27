@@ -4,7 +4,7 @@ import { BrowserRouter as Router, Route, Routes, Navigate, useNavigate } from "r
 import { theme } from "./theme";
 import { useAuthStatus } from "./hooks/useAuthStatus";
 import { SidebarContent } from "./components/Sidebar";
-import Login from "./components/Login";
+import Login from "./components/auth/login";
 import { LoadingProvider } from "./contexts/LoadingContext";
 import Trash from "./components/Trash";
 import TestAPI from "./components/TestAPI";
@@ -37,7 +37,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" />;
+    return <Navigate to="/auth/login" />;
   }
 
   return <>{children}</>;
@@ -62,7 +62,7 @@ function App() {
         <LoadingProvider>
           <Router>
             <Routes>
-              <Route path="/login" element={<Login />} />
+              <Route path="/auth/login" element={<Login />} />
               <Route path="/test-api" element={<TestAPI />} />
               <Route
                 path="/*"
