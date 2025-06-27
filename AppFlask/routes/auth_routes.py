@@ -104,7 +104,7 @@ def login():
                 )
                 return jsonify({'message': 'Erreur de connexion à la base de données'}), 500
 
-            cursor = conn.cursor()
+            cursor = conn.cursor(cursor_factory=RealDictCursor)
             cursor.execute(
                 "SELECT id, email, mot_de_passe, nom, prenom, role FROM utilisateur WHERE email = %s",
                 (email,)
@@ -115,38 +115,38 @@ def login():
             if user and check_password_hash(user['mot_de_passe'], password):
                 # Création du token JWT
                 token = jwt.encode({
-                    'user_id': user[0],
-                    'email': user[1],
-                    'role': user[5],
+                    'user_id': user['id'],
+                    'email': user['email'],
+                    'role': user['role'],
                     'exp': datetime.datetime.utcnow() + datetime.timedelta(days=1)
                 }, Config.SECRET_KEY, algorithm='HS256')
 
                 # Log de la connexion réussie
-                logger.info(f"Attempting to log LOGIN_SUCCESS for user_id: {user[0]}")
+                logger.info(f"Attempting to log LOGIN_SUCCESS for user_id: {user['id']}")
                 try:
                     logging_service.log_event(
                         level='INFO',
                         event_type='LOGIN_SUCCESS',
-                        user_id=user[0],
-                        message=f"Connexion réussie pour {user[3]} {user[4]}",
+                        user_id=user['id'],
+                        message=f"Connexion réussie pour {user['nom']} {user['prenom']}",
                         additional_data={
-                            'email': user[1],
-                            'role': user[5]
+                            'email': user['email'],
+                            'role': user['role']
                         }
                     )
-                    logger.info(f"Call to logging_service.log_event for LOGIN_SUCCESS completed for user_id: {user[0]}")
+                    logger.info(f"Call to logging_service.log_event for LOGIN_SUCCESS completed for user_id: {user['id']}")
                 except Exception as e_log:
                     logger.error(f"Exception during logging_service.log_event for LOGIN_SUCCESS: {str(e_log)}")
                     logger.error(f"Traceback: {traceback.format_exc()}")
 
                 return jsonify({
-                    'token': token,
+                    'access_token': token,
                     'user': {
-                        'id': user[0],
-                        'email': user[1],
-                        'nom': user[3],
-                        'prenom': user[4],
-                        'role': user[5]
+                        'id': user['id'],
+                        'email': user['email'],
+                        'nom': user['nom'],
+                        'prenom': user['prenom'],
+                        'role': user['role']
                     }
                 })
             else:
