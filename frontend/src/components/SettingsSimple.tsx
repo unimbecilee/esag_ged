@@ -185,7 +185,7 @@ const SettingsSimple: React.FC = () => {
     await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/settings/system`, {
+        const response = await fetch(`${API_URL}/api/settings/system`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -210,7 +210,7 @@ const SettingsSimple: React.FC = () => {
     await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/auth/profile`, {
+        const response = await fetch(`${API_URL}/api/auth/profile`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -249,7 +249,7 @@ const SettingsSimple: React.FC = () => {
     await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/auth/change-password`, {
+        const response = await fetch(`${API_URL}/api/auth/change-password`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -583,4 +583,6 @@ const SettingsSimple: React.FC = () => {
 };
 
 export default SettingsSimple; 
+
+
 

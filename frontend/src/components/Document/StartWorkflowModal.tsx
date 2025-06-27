@@ -89,7 +89,7 @@ const StartWorkflowModal: React.FC<StartWorkflowModalProps> = ({
       async () => {
         const token = checkAuthToken();
         
-        const response = await fetch(`${API_URL}/workflows`, {
+        const response = await fetch(`${API_URL}/api/workflows`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -112,7 +112,7 @@ const StartWorkflowModal: React.FC<StartWorkflowModalProps> = ({
       async () => {
         const token = checkAuthToken();
         
-        const response = await fetch(`${API_URL}/workflows/${workflowId}`, {
+        const response = await fetch(`${API_URL}/api/workflows/${workflowId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -147,7 +147,7 @@ const StartWorkflowModal: React.FC<StartWorkflowModalProps> = ({
       async () => {
         const token = checkAuthToken();
         
-        const response = await fetch(`${API_URL}/documents/${documentId}/workflows`, {
+        const response = await fetch(`${API_URL}/api/documents/${documentId}/workflows`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -366,4 +366,6 @@ const StartWorkflowModal: React.FC<StartWorkflowModalProps> = ({
 };
 
 export default StartWorkflowModal; 
+
+
 

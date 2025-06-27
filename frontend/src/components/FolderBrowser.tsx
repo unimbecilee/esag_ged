@@ -107,7 +107,7 @@ const FolderBrowser: React.FC<FolderBrowserProps> = ({
 
       console.log(`Récupération des dossiers: parent_id=${currentFolderId || ''}`);
 
-      const response = await fetch(`${API_URL}/folders/?parent_id=${currentFolderId || ''}`, {
+      const response = await fetch(`${API_URL}/api/folders/?parent_id=${currentFolderId || ''}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -159,7 +159,7 @@ const FolderBrowser: React.FC<FolderBrowserProps> = ({
 
       console.log(`Récupération du breadcrumb pour le dossier: ${currentFolderId}`);
 
-      const response = await fetch(`${API_URL}/folders/${currentFolderId}/breadcrumb`, {
+      const response = await fetch(`${API_URL}/api/folders/${currentFolderId}/breadcrumb`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -246,7 +246,7 @@ const FolderBrowser: React.FC<FolderBrowserProps> = ({
       console.log("URL de l'API:", `${API_URL}/folders`);
       console.log("Token présent:", !!token);
 
-      const response = await fetch(`${API_URL}/folders/`, {
+      const response = await fetch(`${API_URL}/api/folders/`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -482,4 +482,5 @@ const FolderBrowser: React.FC<FolderBrowserProps> = ({
 export default FolderBrowser;
 
  
+
 

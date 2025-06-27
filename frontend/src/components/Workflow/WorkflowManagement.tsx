@@ -175,7 +175,7 @@ const WorkflowManagement: React.FC = () => {
         const token = checkAuthToken();
 
         // Charger les statistiques des workflows
-        const statsResponse = await fetch(`${API_URL}/workflow-stats`, {
+        const statsResponse = await fetch(`${API_URL}/api/workflow-stats`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -195,7 +195,7 @@ const WorkflowManagement: React.FC = () => {
         }
 
         // Charger les modèles de workflow
-        const templatesResponse = await fetch(`${API_URL}/workflows`, {
+        const templatesResponse = await fetch(`${API_URL}/api/workflows`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -205,7 +205,7 @@ const WorkflowManagement: React.FC = () => {
         }
 
         // Charger les approbations en attente
-        const approvalsResponse = await fetch(`${API_URL}/pending-approvals`, {
+        const approvalsResponse = await fetch(`${API_URL}/api/pending-approvals`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -215,7 +215,7 @@ const WorkflowManagement: React.FC = () => {
         }
 
         // Charger toutes les instances de workflow
-        const instancesResponse = await fetch(`${API_URL}/workflow-instances`, {
+        const instancesResponse = await fetch(`${API_URL}/api/workflow-instances`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -248,7 +248,7 @@ const WorkflowManagement: React.FC = () => {
       async () => {
         const token = checkAuthToken();
         
-        const response = await fetch(`${API_URL}/workflows/${workflowId}`, {
+        const response = await fetch(`${API_URL}/api/workflows/${workflowId}`, {
           method: 'DELETE',
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -294,7 +294,7 @@ const WorkflowManagement: React.FC = () => {
       async () => {
         const token = checkAuthToken();
         
-        const response = await fetch(`${API_URL}/workflow-instances/${instanceId}/approve`, {
+        const response = await fetch(`${API_URL}/api/workflow-instances/${instanceId}/approve`, {
           method: 'POST',
           headers: { 
             'Authorization': `Bearer ${token}`,
@@ -346,7 +346,7 @@ const WorkflowManagement: React.FC = () => {
       async () => {
         const token = checkAuthToken();
         
-        const response = await fetch(`${API_URL}/workflow-instances/${instanceId}/reject`, {
+        const response = await fetch(`${API_URL}/api/workflow-instances/${instanceId}/reject`, {
           method: 'POST',
           headers: { 
             'Authorization': `Bearer ${token}`,
@@ -870,4 +870,6 @@ const WorkflowManagement: React.FC = () => {
 };
 
 export default WorkflowManagement; 
+
+
 

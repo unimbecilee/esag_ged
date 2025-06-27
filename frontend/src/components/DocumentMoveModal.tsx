@@ -92,8 +92,8 @@ const DocumentMoveModal: React.FC<DocumentMoveModalProps> = ({
       console.log(`Chargement des dossiers pour folderId=${folderId}`);
       const token = localStorage.getItem('token');
       const url = folderId 
-        ? `${API_URL}/folders/${folderId}/children`
-        : `${API_URL}/folders/`;
+        ? `${API_URL}/api/folders/${folderId}/children`
+        : `${API_URL}/api/folders/`;
       
       console.log(`URL de l'API: ${url}`);
       const response = await fetch(url, {
@@ -178,7 +178,7 @@ const DocumentMoveModal: React.FC<DocumentMoveModalProps> = ({
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/folders/${folderId}/breadcrumb`, {
+      const response = await fetch(`${API_URL}/api/folders/${folderId}/breadcrumb`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -229,7 +229,7 @@ const DocumentMoveModal: React.FC<DocumentMoveModalProps> = ({
           async () => {
             const token = localStorage.getItem('token');
             console.log(`Déplacement du document ${documentIds[0]} vers le dossier ${selectedFolderId}`);
-            const response = await fetch(`${API_URL}/documents/${documentIds[0]}/move`, {
+            const response = await fetch(`${API_URL}/api/documents/${documentIds[0]}/move`, {
               method: 'POST',
               headers: {
                 'Authorization': `Bearer ${token}`,
@@ -282,7 +282,7 @@ const DocumentMoveModal: React.FC<DocumentMoveModalProps> = ({
           async () => {
             const token = localStorage.getItem('token');
             console.log(`Déplacement en lot de ${documentIds.length} documents vers le dossier ${selectedFolderId}`);
-            const response = await fetch(`${API_URL}/documents/bulk-move`, {
+            const response = await fetch(`${API_URL}/api/documents/bulk-move`, {
               method: 'POST',
               headers: {
                 'Authorization': `Bearer ${token}`,
@@ -554,4 +554,5 @@ const DocumentMoveModal: React.FC<DocumentMoveModalProps> = ({
 };
 
 export default DocumentMoveModal; 
+
 

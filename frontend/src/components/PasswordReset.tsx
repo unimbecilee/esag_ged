@@ -51,7 +51,7 @@ const PasswordReset: React.FC = () => {
     setError('');
 
     try {
-      const response = await fetch(`${API_URL}/auth/reset-password`, {
+      const response = await fetch(`${API_URL}/api/auth/reset-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -262,4 +262,5 @@ const PasswordReset: React.FC = () => {
 };
 
 export default PasswordReset; 
+
 

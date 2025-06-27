@@ -90,7 +90,7 @@ const PendingApprovals: React.FC<PendingApprovalsProps> = ({
     await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/validation-workflow/pending`, {
+        const response = await fetch(`${API_URL}/api/validation-workflow/pending`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -121,7 +121,7 @@ const PendingApprovals: React.FC<PendingApprovalsProps> = ({
     await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/validation-workflow/approve`, {
+        const response = await fetch(`${API_URL}/api/validation-workflow/approve`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -377,4 +377,5 @@ const PendingApprovals: React.FC<PendingApprovalsProps> = ({
 };
 
 export default PendingApprovals; 
+
 

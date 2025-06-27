@@ -145,7 +145,7 @@ const ImportExport: React.FC = () => {
             throw new Error('Token non trouvé');
           }
 
-          const response = await fetch(`${config.API_URL}/documents/import`, {
+          const response = await fetch(`${config.API_URL}/api/documents/import`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -221,7 +221,7 @@ const ImportExport: React.FC = () => {
             throw new Error('Token non trouvé');
           }
 
-          const response = await fetch(`${config.API_URL}/documents/export`, {
+          const response = await fetch(`${config.API_URL}/api/documents/export`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -657,4 +657,5 @@ const ImportExport: React.FC = () => {
 };
 
 export default ImportExport; 
+
 

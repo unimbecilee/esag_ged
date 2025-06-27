@@ -145,7 +145,7 @@ const SearchPage: React.FC = () => {
         searchParams.append('type', entityType);
       }
 
-      const response = await fetch(`${config.API_URL}/search?${searchParams.toString()}`, {
+      const response = await fetch(`${config.API_URL}/api/search?${searchParams.toString()}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json"

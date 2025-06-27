@@ -74,7 +74,7 @@ const DocumentOCR: React.FC<DocumentOCRProps> = ({
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${config.API_URL}/documents/${documentId}/ocr`,
+        `${config.API_URL}/api/documents/${documentId}/ocr`,
         {
           method: 'POST',
           headers: {
@@ -275,4 +275,5 @@ const DocumentOCR: React.FC<DocumentOCRProps> = ({
 };
 
 export default DocumentOCR; 
+
 

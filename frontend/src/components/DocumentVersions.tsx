@@ -86,7 +86,7 @@ const DocumentVersions: React.FC<DocumentVersionsProps> = ({
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${config.API_URL}/documents/${documentId}/versions`, {
+      const response = await fetch(`${config.API_URL}/api/documents/${documentId}/versions`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -118,7 +118,7 @@ const DocumentVersions: React.FC<DocumentVersionsProps> = ({
     await executeOperation(async () => {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${config.API_URL}/documents/${documentId}/versions/${versionNumber}/download`,
+        `${config.API_URL}/api/documents/${documentId}/versions/${versionNumber}/download`,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -151,7 +151,7 @@ const DocumentVersions: React.FC<DocumentVersionsProps> = ({
     await executeOperation(async () => {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${config.API_URL}/documents/${documentId}/versions/restore`,
+        `${config.API_URL}/api/documents/${documentId}/versions/restore`,
         {
           method: 'POST',
           headers: {
@@ -317,4 +317,5 @@ const DocumentVersions: React.FC<DocumentVersionsProps> = ({
 };
 
 export default DocumentVersions; 
+
 

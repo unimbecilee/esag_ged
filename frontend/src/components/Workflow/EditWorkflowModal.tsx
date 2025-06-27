@@ -94,7 +94,7 @@ const EditWorkflowModal: React.FC<EditWorkflowModalProps> = ({
         const token = checkAuthToken();
         
         // Charger les détails du workflow
-        const workflowResponse = await fetch(`${API_URL}/workflows/${workflowId}`, {
+        const workflowResponse = await fetch(`${API_URL}/api/workflows/${workflowId}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -105,7 +105,7 @@ const EditWorkflowModal: React.FC<EditWorkflowModalProps> = ({
         const workflowData = await workflowResponse.json();
         
         // Charger les étapes avec leurs approbateurs
-        const etapesResponse = await fetch(`${API_URL}/workflows/${workflowId}/etapes`, {
+        const etapesResponse = await fetch(`${API_URL}/api/workflows/${workflowId}/etapes`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -134,7 +134,7 @@ const EditWorkflowModal: React.FC<EditWorkflowModalProps> = ({
         const token = checkAuthToken();
         
         // Charger les utilisateurs
-        const usersResponse = await fetch(`${API_URL}/users/for-approval`, {
+        const usersResponse = await fetch(`${API_URL}/api/users/for-approval`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -143,7 +143,7 @@ const EditWorkflowModal: React.FC<EditWorkflowModalProps> = ({
         }
 
         // Charger les organisations
-        const orgsResponse = await fetch(`${API_URL}/organizations`, {
+        const orgsResponse = await fetch(`${API_URL}/api/organizations`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -152,7 +152,7 @@ const EditWorkflowModal: React.FC<EditWorkflowModalProps> = ({
         }
 
         // Charger les rôles
-        const rolesResponse = await fetch(`${API_URL}/sharing/roles`, {
+        const rolesResponse = await fetch(`${API_URL}/api/sharing/roles`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -431,4 +431,6 @@ const EditWorkflowModal: React.FC<EditWorkflowModalProps> = ({
 };
 
 export default EditWorkflowModal; 
+
+
 

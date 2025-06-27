@@ -179,7 +179,7 @@ const CreateFolderModal: React.FC<CreateFolderModalProps> = ({
       formData.append('dossier_id', folderId.toString());
 
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/documents`, {
+      const response = await fetch(`${API_URL}/api/documents`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -221,7 +221,7 @@ const CreateFolderModal: React.FC<CreateFolderModalProps> = ({
       const folderId = await executeOperation(
         async () => {
           const token = localStorage.getItem('token');
-          const response = await fetch(`${API_URL}/folders/`, {
+          const response = await fetch(`${API_URL}/api/folders/`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -537,4 +537,6 @@ const CreateFolderModal: React.FC<CreateFolderModalProps> = ({
 };
 
 export default CreateFolderModal; 
+
+
 

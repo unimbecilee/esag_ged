@@ -69,7 +69,7 @@ const DocumentSubscription: React.FC<DocumentSubscriptionProps> = ({
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${config.API_URL}/documents/${documentId}/subscription`,
+        `${config.API_URL}/api/documents/${documentId}/subscription`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -99,7 +99,7 @@ const DocumentSubscription: React.FC<DocumentSubscriptionProps> = ({
     await executeOperation(async () => {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${config.API_URL}/documents/${documentId}/subscribe`,
+        `${config.API_URL}/api/documents/${documentId}/subscribe`,
         {
           method: 'POST',
           headers: {
@@ -128,7 +128,7 @@ const DocumentSubscription: React.FC<DocumentSubscriptionProps> = ({
     await executeOperation(async () => {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${config.API_URL}/documents/${documentId}/subscription`,
+        `${config.API_URL}/api/documents/${documentId}/subscription`,
         {
           method: 'PUT',
           headers: {
@@ -155,7 +155,7 @@ const DocumentSubscription: React.FC<DocumentSubscriptionProps> = ({
     await executeOperation(async () => {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${config.API_URL}/documents/${documentId}/unsubscribe`,
+        `${config.API_URL}/api/documents/${documentId}/unsubscribe`,
         {
           method: 'DELETE',
           headers: {
@@ -297,4 +297,5 @@ const DocumentSubscription: React.FC<DocumentSubscriptionProps> = ({
 };
 
 export default DocumentSubscription; 
+
 

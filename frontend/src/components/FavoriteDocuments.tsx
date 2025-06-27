@@ -132,7 +132,7 @@ const FavoriteDocuments: React.FC = () => {
           }
           
           const response = await fetch(
-            `${config.API_URL}/documents/${documentId}/download`,
+            `${config.API_URL}/api/documents/${documentId}/download`,
             {
               headers: {
                 Authorization: `Bearer ${token}`,
@@ -180,7 +180,7 @@ const FavoriteDocuments: React.FC = () => {
           }
           
           const response = await fetch(
-            `${config.API_URL}/documents/${documentId}/favorite`,
+            `${config.API_URL}/api/documents/${documentId}/favorite`,
             {
               method: 'DELETE',
               headers: {
@@ -421,4 +421,5 @@ const FavoriteDocuments: React.FC = () => {
 };
 
 export default FavoriteDocuments; 
+
 

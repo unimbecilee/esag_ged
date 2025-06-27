@@ -135,8 +135,8 @@ const FolderDocumentView: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       const url = currentFolderId 
-        ? `${API_URL}/folders/${currentFolderId}/children`
-        : `${API_URL}/folders/?parent_id=`;
+        ? `${API_URL}/api/folders/${currentFolderId}/children`
+        : `${API_URL}/api/folders/?parent_id=`;
       
       const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -154,7 +154,7 @@ const FolderDocumentView: React.FC = () => {
   const loadDocuments = async () => {
     try {
       const token = localStorage.getItem('token');
-      let url = `${API_URL}/documents/my`;
+      let url = `${API_URL}/api/documents/my`;
       if (currentFolderId !== null) {
         url += `?dossier_id=${currentFolderId}`;
       }
@@ -180,7 +180,7 @@ const FolderDocumentView: React.FC = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/folders/${currentFolderId}/breadcrumb`, {
+      const response = await fetch(`${API_URL}/api/folders/${currentFolderId}/breadcrumb`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -242,7 +242,7 @@ const FolderDocumentView: React.FC = () => {
   const handleDownload = async (documentId: number) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/documents/${documentId}/download`, {
+      const response = await fetch(`${API_URL}/api/documents/${documentId}/download`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -575,4 +575,5 @@ const FolderDocumentView: React.FC = () => {
 };
 
 export default FolderDocumentView; 
+
 

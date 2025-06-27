@@ -88,7 +88,7 @@ const DocumentTags: React.FC<DocumentTagsProps> = ({
   const fetchDocumentTags = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${config.API_URL}/documents/${documentId}/tags`, {
+      const response = await fetch(`${config.API_URL}/api/documents/${documentId}/tags`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -109,7 +109,7 @@ const DocumentTags: React.FC<DocumentTagsProps> = ({
   const fetchAvailableTags = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${config.API_URL}/documents/tags`, {
+      const response = await fetch(`${config.API_URL}/api/documents/tags`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -132,7 +132,7 @@ const DocumentTags: React.FC<DocumentTagsProps> = ({
 
     await executeOperation(async () => {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${config.API_URL}/documents/tags`, {
+      const response = await fetch(`${config.API_URL}/api/documents/tags`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -167,7 +167,7 @@ const DocumentTags: React.FC<DocumentTagsProps> = ({
 
     await executeOperation(async () => {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${config.API_URL}/documents/${documentId}/tags`, {
+      const response = await fetch(`${config.API_URL}/api/documents/${documentId}/tags`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -194,7 +194,7 @@ const DocumentTags: React.FC<DocumentTagsProps> = ({
   const handleRemoveTagFromDocument = async (tagId: number) => {
     await executeOperation(async () => {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${config.API_URL}/documents/${documentId}/tags/${tagId}`, {
+      const response = await fetch(`${config.API_URL}/api/documents/${documentId}/tags/${tagId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -423,4 +423,5 @@ const DocumentTags: React.FC<DocumentTagsProps> = ({
 };
 
 export default DocumentTags; 
+
 

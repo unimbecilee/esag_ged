@@ -181,7 +181,7 @@ const Settings: React.FC = () => {
     const result = await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/settings/system`, {
+        const response = await fetch(`${API_URL}/api/settings/system`, {
           headers: {
             'Authorization': `Bearer ${token}`,
           },
@@ -232,7 +232,7 @@ const Settings: React.FC = () => {
     await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/settings/system`, {
+        const response = await fetch(`${API_URL}/api/settings/system`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -257,7 +257,7 @@ const Settings: React.FC = () => {
     await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/auth/profile`, {
+        const response = await fetch(`${API_URL}/api/auth/profile`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -298,7 +298,7 @@ const Settings: React.FC = () => {
     await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/auth/change-password`, {
+        const response = await fetch(`${API_URL}/api/auth/change-password`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -738,4 +738,6 @@ const Settings: React.FC = () => {
 };
 
 export default Settings; 
+
+
 

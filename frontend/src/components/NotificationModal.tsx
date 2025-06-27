@@ -161,7 +161,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${config.API_URL}/notifications/${notification.id}/read`,
+        `${config.API_URL}/api/notifications/${notification.id}/read`,
         {
           method: 'PUT',
           headers: {
@@ -197,7 +197,7 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${config.API_URL}/notifications/${notification.id}/click`,
+        `${config.API_URL}/api/notifications/${notification.id}/click`,
         {
           method: 'POST',
           headers: {
@@ -465,4 +465,5 @@ const NotificationModal: React.FC<NotificationModalProps> = ({
 };
 
 export default NotificationModal; 
+
 

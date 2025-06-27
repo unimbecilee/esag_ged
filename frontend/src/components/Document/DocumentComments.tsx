@@ -93,7 +93,7 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${config.API_URL}/documents/${documentId}/comments`, {
+      const response = await fetch(`${config.API_URL}/api/documents/${documentId}/comments`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -124,7 +124,7 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
 
     await executeOperation(async () => {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${config.API_URL}/documents/${documentId}/comments`, {
+      const response = await fetch(`${config.API_URL}/api/documents/${documentId}/comments`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -152,7 +152,7 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
 
     await executeOperation(async () => {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${config.API_URL}/documents/${documentId}/comments/${parentId}/reply`, {
+      const response = await fetch(`${config.API_URL}/api/documents/${documentId}/comments/${parentId}/reply`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -183,7 +183,7 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
 
     await executeOperation(async () => {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${config.API_URL}/documents/${documentId}/comments/${commentId}`, {
+      const response = await fetch(`${config.API_URL}/api/documents/${documentId}/comments/${commentId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -210,7 +210,7 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
   const handleDeleteComment = async (commentId: number) => {
     await executeOperation(async () => {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${config.API_URL}/documents/${documentId}/comments/${commentId}`, {
+      const response = await fetch(`${config.API_URL}/api/documents/${documentId}/comments/${commentId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -491,4 +491,5 @@ const DocumentComments: React.FC<DocumentCommentsProps> = ({
 };
 
 export default DocumentComments; 
+
 

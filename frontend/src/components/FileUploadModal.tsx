@@ -125,7 +125,7 @@ const FileUploadModal: React.FC<FileUploadModalProps> = ({
     setUploadProgress(30);
 
     try {
-      const response = await fetch(`${config.API_URL}/documents/upload`, {
+      const response = await fetch(`${config.API_URL}/api/documents/upload`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -335,4 +335,5 @@ const FileUploadModal: React.FC<FileUploadModalProps> = ({
 };
 
 export default FileUploadModal; 
+
 

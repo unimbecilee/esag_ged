@@ -219,7 +219,7 @@ const NotificationCenter: React.FC = () => {
   const fetchStats = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${config.API_URL}/notifications/stats`, {
+      const response = await fetch(`${config.API_URL}/api/notifications/stats`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -238,7 +238,7 @@ const NotificationCenter: React.FC = () => {
   const fetchPreferences = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${config.API_URL}/notifications/preferences`, {
+      const response = await fetch(`${config.API_URL}/api/notifications/preferences`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -258,7 +258,7 @@ const NotificationCenter: React.FC = () => {
     await executeOperation(async () => {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${config.API_URL}/notifications/${notificationId}/read`,
+        `${config.API_URL}/api/notifications/${notificationId}/read`,
         {
           method: 'PUT',
           headers: {
@@ -284,7 +284,7 @@ const NotificationCenter: React.FC = () => {
     await executeOperation(async () => {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${config.API_URL}/notifications/mark-all-read`,
+        `${config.API_URL}/api/notifications/mark-all-read`,
         {
           method: 'PUT',
           headers: {
@@ -311,7 +311,7 @@ const NotificationCenter: React.FC = () => {
     await executeOperation(async () => {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${config.API_URL}/notifications/${notificationId}`,
+        `${config.API_URL}/api/notifications/${notificationId}`,
         {
           method: 'DELETE',
           headers: {
@@ -352,7 +352,7 @@ const NotificationCenter: React.FC = () => {
     await executeOperation(async () => {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${config.API_URL}/notifications/preferences`,
+        `${config.API_URL}/api/notifications/preferences`,
         {
           method: 'PUT',
           headers: {
@@ -861,4 +861,5 @@ const NotificationCenter: React.FC = () => {
 };
 
 export default NotificationCenter; 
+
 

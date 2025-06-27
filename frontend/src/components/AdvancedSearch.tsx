@@ -170,7 +170,7 @@ const AdvancedSearch: React.FC = () => {
   const fetchAvailableTags = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${config.API_URL}/documents/tags`, {
+      const response = await fetch(`${config.API_URL}/api/documents/tags`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -203,11 +203,11 @@ const AdvancedSearch: React.FC = () => {
       if (filters.maxSize < 100) searchParams.append('max_size', (filters.maxSize * 1024 * 1024).toString());
       if (filters.owner) searchParams.append('owner', filters.owner);
 
-      let searchUrl = `${config.API_URL}/search?${searchParams.toString()}`;
+      let searchUrl = `${config.API_URL}/api/search?${searchParams.toString()}`;
       
       // Si on a des tags, utiliser l'endpoint de recherche par tags
       if (filters.tags.length > 0) {
-        const response = await fetch(`${config.API_URL}/documents/search-by-tags`, {
+        const response = await fetch(`${config.API_URL}/api/documents/search-by-tags`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -334,7 +334,7 @@ const AdvancedSearch: React.FC = () => {
   const handleDownload = async (documentId: number) => {
     await executeOperation(async () => {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${config.API_URL}/documents/${documentId}/download`, {
+      const response = await fetch(`${config.API_URL}/api/documents/${documentId}/download`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -685,4 +685,5 @@ const AdvancedSearch: React.FC = () => {
 };
 
 export default AdvancedSearch; 
+
 

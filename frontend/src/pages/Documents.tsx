@@ -22,7 +22,7 @@ const Documents: React.FC = () => {
     const result = await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/documents`, {
+        const response = await fetch(`${API_URL}/api/documents`, {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
@@ -53,7 +53,7 @@ const Documents: React.FC = () => {
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await fetch(`${API_URL}/documents/upload`, {
+        const response = await fetch(`${API_URL}/api/documents/upload`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -79,7 +79,7 @@ const Documents: React.FC = () => {
     await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/documents/${documentId}`, {
+        const response = await fetch(`${API_URL}/api/documents/${documentId}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -108,4 +108,6 @@ const Documents: React.FC = () => {
 };
 
 export default Documents; 
+
+
 

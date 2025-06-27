@@ -63,7 +63,7 @@ const ArchiveRequestModal: React.FC<ArchiveRequestModalProps> = ({
       async () => {
         const token = checkAuthToken();
         
-        const response = await fetch(`${config.API_URL}/workflows/archivage`, {
+        const response = await fetch(`${config.API_URL}/api/workflows/archivage`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
@@ -102,7 +102,7 @@ const ArchiveRequestModal: React.FC<ArchiveRequestModalProps> = ({
       async () => {
         const token = checkAuthToken();
         
-        const response = await fetch(`${config.API_URL}/workflow-instances`, {
+        const response = await fetch(`${config.API_URL}/api/workflow-instances`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -121,7 +121,7 @@ const ArchiveRequestModal: React.FC<ArchiveRequestModalProps> = ({
         }
 
         // Mettre � jour le statut du document
-        const updateResponse = await fetch(`${config.API_URL}/documents/${documentId}/status`, {
+        const updateResponse = await fetch(`${config.API_URL}/api/documents/${documentId}/status`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -138,7 +138,7 @@ const ArchiveRequestModal: React.FC<ArchiveRequestModalProps> = ({
 
         // Envoyer les notifications aux responsables d'archivage
         try {
-          const notificationResponse = await fetch(`${config.API_URL}/notifications/archive-request`, {
+          const notificationResponse = await fetch(`${config.API_URL}/api/notifications/archive-request`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -260,4 +260,5 @@ const ArchiveRequestModal: React.FC<ArchiveRequestModalProps> = ({
 };
 
 export default ArchiveRequestModal;
+
 

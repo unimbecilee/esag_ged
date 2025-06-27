@@ -119,7 +119,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
       // Sinon, utiliser l'API de téléchargement
       console.log('🔗 [AUTO-DOWNLOAD] Utilisation API de téléchargement');
       const token = localStorage.getItem('token');
-      const downloadUrl = `${config.API_URL}/documents/${documentId}/download`;
+      const downloadUrl = `${config.API_URL}/api/documents/${documentId}/download`;
       
       console.log('🔗 [AUTO-DOWNLOAD] URL:', downloadUrl);
       // Ouvrir dans un nouvel onglet avec authentification
@@ -202,7 +202,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
         // Sinon, utiliser l'API de téléchargement
         console.log('🔗 [AUTO-DOWNLOAD] Utilisation API de téléchargement');
         const token = localStorage.getItem('token');
-        const downloadUrl = `${config.API_URL}/documents/${documentId}/download`;
+        const downloadUrl = `${config.API_URL}/api/documents/${documentId}/download`;
         
         console.log('🔗 [AUTO-DOWNLOAD] URL:', downloadUrl);
         window.open(`${downloadUrl}?token=${token}`, '_blank');
@@ -242,7 +242,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
 
       console.log(`📋 [DEBUG] Chargement document ${documentId} avec token:`, token ? 'présent' : 'manquant');
       
-      const response = await fetch(`${config.API_URL}/documents/${documentId}`, {
+      const response = await fetch(`${config.API_URL}/api/documents/${documentId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -274,7 +274,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
         setPreviewUrl(data.cloudinary_url);
       } else if (data.fichier) {
         // Fallback vers fichier local
-        setPreviewUrl(`${config.API_URL}/documents/${documentId}/download`);
+        setPreviewUrl(`${config.API_URL}/api/documents/${documentId}/download`);
       } else {
         throw new Error('Aucun fichier associé à ce document');
       }
@@ -304,7 +304,7 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
       // Sinon, utiliser l'API de téléchargement
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${config.API_URL}/documents/${documentId}/download`,
+        `${config.API_URL}/api/documents/${documentId}/download`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -545,4 +545,5 @@ const DocumentPreview: React.FC<DocumentPreviewProps> = ({
 };
 
 export default DocumentPreview; 
+
 

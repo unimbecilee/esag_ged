@@ -184,7 +184,7 @@ const BatchOperations: React.FC = () => {
           const token = localStorage.getItem('token');
           if (!token) throw new Error('Token non trouvé');
 
-          const response = await fetch(`${config.API_URL}/batch-operations`, {
+          const response = await fetch(`${config.API_URL}/api/batch-operations`, {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
@@ -310,7 +310,7 @@ const BatchOperations: React.FC = () => {
             await new Promise(resolve => setTimeout(resolve, 300));
           }
 
-          const response = await fetch(`${config.API_URL}/batch-operations`, {
+          const response = await fetch(`${config.API_URL}/api/batch-operations`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -749,4 +749,5 @@ const BatchOperations: React.FC = () => {
 };
 
 export default BatchOperations; 
+
 

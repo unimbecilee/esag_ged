@@ -174,7 +174,7 @@ const Scan: React.FC = () => {
   const detectDeviceCapabilities = async () => {
     try {
       const token = checkAuthToken();
-      const response = await fetch(`${API_URL}/scan/detect-device`, {
+      const response = await fetch(`${API_URL}/api/scan/detect-device`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -192,7 +192,7 @@ const Scan: React.FC = () => {
   const loadScannedDocuments = async () => {
     try {
       const token = checkAuthToken();
-      const response = await fetch(`${API_URL}/scan/list`, {
+      const response = await fetch(`${API_URL}/api/scan/list`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       
@@ -276,7 +276,7 @@ const Scan: React.FC = () => {
       const result = await executeOperation(
         async () => {
           const token = checkAuthToken();
-          const response = await fetch(`${API_URL}/scan/camera`, {
+          const response = await fetch(`${API_URL}/api/scan/camera`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -336,7 +336,7 @@ const Scan: React.FC = () => {
           formData.append('title', documentTitle || `Scan ${new Date().toLocaleString('fr-FR')}`);
           formData.append('description', documentDescription || '');
 
-          const response = await fetch(`${API_URL}/scan/scanner`, {
+          const response = await fetch(`${API_URL}/api/scan/scanner`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`
@@ -383,7 +383,7 @@ const Scan: React.FC = () => {
     await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/scan/${doc.id}/save-to-ged`, {
+        const response = await fetch(`${API_URL}/api/scan/${doc.id}/save-to-ged`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -414,7 +414,7 @@ const Scan: React.FC = () => {
     await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/scan/${docId}`, {
+        const response = await fetch(`${API_URL}/api/scan/${docId}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -943,4 +943,5 @@ const Scan: React.FC = () => {
 };
 
 export default Scan;
+
 

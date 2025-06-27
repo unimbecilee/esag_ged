@@ -51,7 +51,7 @@ const Search: React.FC = () => {
     const results = await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/documents/search?q=${encodeURIComponent(searchTerm)}`, {
+        const response = await fetch(`${API_URL}/api/documents/search?q=${encodeURIComponent(searchTerm)}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -255,4 +255,5 @@ const Search: React.FC = () => {
 };
 
 export default Search; 
+
 

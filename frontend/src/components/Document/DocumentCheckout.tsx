@@ -81,7 +81,7 @@ const DocumentCheckout: React.FC<DocumentCheckoutProps> = ({
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${config.API_URL}/documents/${documentId}/checkout/status`,
+        `${config.API_URL}/api/documents/${documentId}/checkout/status`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -107,7 +107,7 @@ const DocumentCheckout: React.FC<DocumentCheckoutProps> = ({
     await executeOperation(async () => {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${config.API_URL}/documents/${documentId}/checkout`,
+        `${config.API_URL}/api/documents/${documentId}/checkout`,
         {
           method: 'POST',
           headers: {
@@ -137,7 +137,7 @@ const DocumentCheckout: React.FC<DocumentCheckoutProps> = ({
     await executeOperation(async () => {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${config.API_URL}/documents/${documentId}/checkin`,
+        `${config.API_URL}/api/documents/${documentId}/checkin`,
         {
           method: 'POST',
           headers: {
@@ -165,7 +165,7 @@ const DocumentCheckout: React.FC<DocumentCheckoutProps> = ({
     await executeOperation(async () => {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${config.API_URL}/documents/${documentId}/checkout/force-checkin`,
+        `${config.API_URL}/api/documents/${documentId}/checkout/force-checkin`,
         {
           method: 'POST',
           headers: {
@@ -336,4 +336,5 @@ const DocumentCheckout: React.FC<DocumentCheckoutProps> = ({
 };
 
 export default DocumentCheckout; 
+
 

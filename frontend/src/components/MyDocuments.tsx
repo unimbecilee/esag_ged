@@ -369,7 +369,7 @@ const MyDocuments: React.FC = () => {
           }
           
           const response = await fetch(
-            `${config.API_URL}/documents/${documentId}/download`,
+            `${config.API_URL}/api/documents/${documentId}/download`,
             {
               headers: {
                 Authorization: `Bearer ${token}`,
@@ -419,7 +419,7 @@ const MyDocuments: React.FC = () => {
           }
           
           const response = await fetch(
-            `${config.API_URL}/documents/${selectedDocument}`,
+            `${config.API_URL}/api/documents/${selectedDocument}`,
             {
               method: "DELETE",
               headers: {
@@ -474,7 +474,7 @@ const MyDocuments: React.FC = () => {
               throw new Error('Token non trouvé');
             }
 
-            const response = await fetch(`${config.API_URL}/documents/${documentId}`, {
+            const response = await fetch(`${config.API_URL}/api/documents/${documentId}`, {
               method: 'PUT',
               headers: {
                 Authorization: `Bearer ${token}`,
@@ -560,7 +560,7 @@ const MyDocuments: React.FC = () => {
             throw new Error('Token non trouvé');
           }
 
-          const response = await fetch(`${config.API_URL}/folders/${folderId}`, {
+          const response = await fetch(`${config.API_URL}/api/folders/${folderId}`, {
             method: 'DELETE',
             headers: {
               Authorization: `Bearer ${token}`,
@@ -593,7 +593,7 @@ const MyDocuments: React.FC = () => {
             throw new Error('Token non trouvé');
           }
 
-          const response = await fetch(`${config.API_URL}/folders/${folderId}`, {
+          const response = await fetch(`${config.API_URL}/api/folders/${folderId}`, {
             method: 'PUT',
             headers: {
               Authorization: `Bearer ${token}`,
@@ -718,7 +718,7 @@ const MyDocuments: React.FC = () => {
 
       const promises = documents.map(async (doc) => {
         try {
-          const response = await fetch(`${config.API_URL}/documents/${doc.id}/favorite/status`, {
+          const response = await fetch(`${config.API_URL}/api/documents/${doc.id}/favorite/status`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           if (response.ok) {
@@ -755,7 +755,7 @@ const MyDocuments: React.FC = () => {
             throw new Error('Token non trouvé');
           }
 
-          const response = await fetch(`${config.API_URL}/documents/${documentId}/favorite`, {
+          const response = await fetch(`${config.API_URL}/api/documents/${documentId}/favorite`, {
             method,
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -1384,4 +1384,5 @@ const MyDocuments: React.FC = () => {
 };
 
 export default MyDocuments; 
+
 

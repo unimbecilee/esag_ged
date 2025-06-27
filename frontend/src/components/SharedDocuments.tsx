@@ -205,7 +205,7 @@ const SharedDocuments: React.FC = () => {
         throw new Error('Token d\'authentification manquant');
       }
 
-      const response = await fetch(`${config.API_URL}/documents/${document.id}/download`, {
+      const response = await fetch(`${config.API_URL}/api/documents/${document.id}/download`, {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -676,4 +676,5 @@ const SharedDocuments: React.FC = () => {
 };
 
 export default SharedDocuments; 
+
 

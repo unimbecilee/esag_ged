@@ -76,7 +76,7 @@ const Organization: React.FC = () => {
     const result = await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/organizations`, {
+        const response = await fetch(`${API_URL}/api/organizations`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -105,7 +105,7 @@ const Organization: React.FC = () => {
     await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/organizations/${selectedOrg.id}`, {
+        const response = await fetch(`${API_URL}/api/organizations/${selectedOrg.id}`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -133,7 +133,7 @@ const Organization: React.FC = () => {
     await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/organizations/${orgId}`, {
+        const response = await fetch(`${API_URL}/api/organizations/${orgId}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -382,4 +382,6 @@ const Organization: React.FC = () => {
 };
 
 export default Organization; 
+
+
 

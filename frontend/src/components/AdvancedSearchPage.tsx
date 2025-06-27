@@ -156,7 +156,7 @@ const AdvancedSearchPage: React.FC = () => {
           searchParams.append('searchTerm', filters.query);
           searchParams.append('contentSearch', filters.contentSearch);
 
-          const response = await fetch(`${config.API_URL}/documents/search/advanced?${searchParams}`, {
+          const response = await fetch(`${config.API_URL}/api/documents/search/advanced?${searchParams}`, {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
@@ -208,7 +208,7 @@ const AdvancedSearchPage: React.FC = () => {
             throw new Error('Token non trouvé');
           }
 
-          const response = await fetch(`${config.API_URL}/search/saved`, {
+          const response = await fetch(`${config.API_URL}/api/search/saved`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
@@ -601,4 +601,5 @@ const AdvancedSearchPage: React.FC = () => {
 };
 
 export default AdvancedSearchPage; 
+
 

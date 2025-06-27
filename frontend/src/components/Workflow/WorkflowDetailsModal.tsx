@@ -101,7 +101,7 @@ const WorkflowDetailsModal: React.FC<WorkflowDetailsModalProps> = ({
         
         // Charger les détails du workflow
         console.log(`Chargement des détails du workflow ${id}`);
-        const workflowResponse = await fetch(`${API_URL}/workflows/${id}`, {
+        const workflowResponse = await fetch(`${API_URL}/api/workflows/${id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -114,7 +114,7 @@ const WorkflowDetailsModal: React.FC<WorkflowDetailsModalProps> = ({
         
         // Charger les étapes du workflow
         console.log(`Chargement des étapes du workflow ${id}`);
-        const etapesResponse = await fetch(`${API_URL}/workflows/${id}/etapes`, {
+        const etapesResponse = await fetch(`${API_URL}/api/workflows/${id}/etapes`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -312,4 +312,5 @@ const WorkflowDetailsModal: React.FC<WorkflowDetailsModalProps> = ({
 };
 
 export default WorkflowDetailsModal; 
+
 

@@ -133,7 +133,7 @@ const EmailSettings: React.FC = () => {
     const result = await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/email/config`, {
+        const response = await fetch(`${API_URL}/api/email/config`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -167,7 +167,7 @@ const EmailSettings: React.FC = () => {
     const result = await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/email/templates`, {
+        const response = await fetch(`${API_URL}/api/email/templates`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -193,7 +193,7 @@ const EmailSettings: React.FC = () => {
     const result = await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/email/logs?page=${page}&per_page=20`, {
+        const response = await fetch(`${API_URL}/api/email/logs?page=${page}&per_page=20`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -235,7 +235,7 @@ const EmailSettings: React.FC = () => {
     await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/email/config`, {
+        const response = await fetch(`${API_URL}/api/email/config`, {
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -272,7 +272,7 @@ const EmailSettings: React.FC = () => {
     setIsTestingConnection(true);
     try {
       const token = checkAuthToken();
-      const response = await fetch(`${API_URL}/email/test`, {
+      const response = await fetch(`${API_URL}/api/email/test`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -327,7 +327,7 @@ const EmailSettings: React.FC = () => {
     setIsSendingTest(true);
     try {
       const token = checkAuthToken();
-      const response = await fetch(`${API_URL}/email/send-test`, {
+      const response = await fetch(`${API_URL}/api/email/send-test`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -745,4 +745,5 @@ const EmailSettings: React.FC = () => {
 };
 
 export default EmailSettings; 
+
 

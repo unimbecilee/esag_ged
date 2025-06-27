@@ -59,7 +59,7 @@ const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
       console.log("URL de l'API:", `${API_URL}/login`);
       console.log("Données envoyées:", { email, password: "***" });
 
-      const response = await fetch(`${API_URL}/login`, {
+      const response = await fetch(`${API_URL}/api/login`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -250,4 +250,5 @@ const Login: React.FC<LoginProps> = ({ onAuthSuccess }) => {
 };
 
 export default Login;
+
 

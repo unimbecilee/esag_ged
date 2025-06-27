@@ -58,7 +58,7 @@ const Shared: React.FC = () => {
     try {
       showLoading("Chargement des documents partagés...");
       const token = checkAuthToken();
-      const response = await fetch(`${API_URL}/documents/shared`, {
+      const response = await fetch(`${API_URL}/api/documents/shared`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -81,7 +81,7 @@ const Shared: React.FC = () => {
     await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/documents/${documentId}/download`, {
+        const response = await fetch(`${API_URL}/api/documents/${documentId}/download`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -113,7 +113,7 @@ const Shared: React.FC = () => {
     await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/documents/shared/${shareId}`, {
+        const response = await fetch(`${API_URL}/api/documents/shared/${shareId}`, {
           method: 'DELETE',
           headers: {
             'Authorization': `Bearer ${token}`
@@ -311,4 +311,5 @@ const Shared: React.FC = () => {
 };
 
 export default Shared; 
+
 

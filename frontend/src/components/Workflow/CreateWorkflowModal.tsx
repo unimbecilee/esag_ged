@@ -135,7 +135,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
         const token = checkAuthToken();
         
         // Charger les utilisateurs
-        const usersResponse = await fetch(`${API_URL}/users/for-approval`, {
+        const usersResponse = await fetch(`${API_URL}/api/users/for-approval`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -144,7 +144,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
         }
 
         // Charger les organisations
-        const orgsResponse = await fetch(`${API_URL}/organizations`, {
+        const orgsResponse = await fetch(`${API_URL}/api/organizations`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
@@ -288,7 +288,7 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
           }))
         };
 
-        const response = await fetch(`${API_URL}/workflows`, {
+        const response = await fetch(`${API_URL}/api/workflows`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -679,4 +679,6 @@ const CreateWorkflowModal: React.FC<CreateWorkflowModalProps> = ({
 };
 
 export default CreateWorkflowModal; 
+
+
 

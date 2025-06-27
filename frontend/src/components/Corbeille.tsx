@@ -88,7 +88,7 @@ const Corbeille: React.FC = () => {
             throw new Error('Token non trouvé');
           }
 
-          const response = await fetch(`${API_URL}/trash`, {
+          const response = await fetch(`${API_URL}/api/trash`, {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
@@ -130,7 +130,7 @@ const Corbeille: React.FC = () => {
     
     try {
       const response = await fetch(
-        `${API_URL}/trash/${selectedDocument}/restore`,
+        `${API_URL}/api/trash/${selectedDocument}/restore`,
         {
           method: "POST",
           headers: {
@@ -169,7 +169,7 @@ const Corbeille: React.FC = () => {
     
     try {
       const response = await fetch(
-        `${API_URL}/trash/${selectedDocument}`,
+        `${API_URL}/api/trash/${selectedDocument}`,
         {
           method: "DELETE",
           headers: {
@@ -380,4 +380,5 @@ const Corbeille: React.FC = () => {
 };
 
 export default Corbeille;
+
 
