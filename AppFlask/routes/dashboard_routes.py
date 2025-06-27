@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
+from flask import Blueprint, request, redirect, url_for, flash, session, jsonify
 import json
 from AppFlask.db import db_connection
 from flask_login import login_required, current_user

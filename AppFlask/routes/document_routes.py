@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, send_from_directory, session, current_app, send_file, Response, abort
+from flask import Blueprint, request, redirect, url_for, flash, send_from_directory, session, current_app, send_file, Response, abort
 from flask_login import login_required
 from werkzeug.utils import secure_filename
 from datetime import datetime
@@ -13,8 +13,10 @@ import json
 from docx import Document
 from io import BytesIO
 
-
 document_bp = Blueprint('document', __name__)
+
+# Suppression de toutes les routes web HTML (render_template)
+# API only
 
 @document_bp.app_context_processor
 def inject_permissions():
