@@ -43,9 +43,9 @@ import {
 } from 'react-icons/fi';
 import { useAsyncOperation } from '../hooks/useAsyncOperation';
 import config from '../config';
+import { asElementType } from '../utils/iconUtils';
 
 const API_URL = config.API_URL;
-import { asElementType } from '../utils/iconUtils';
 
 interface CreateFolderModalProps {
   isOpen: boolean;
