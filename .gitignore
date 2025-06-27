@@ -20,6 +20,7 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+/templates/
 
 # Environnement virtuel
 venv/
@@ -102,3 +103,5 @@ site/
 *.dylib
 *.dll
 node_modules
+
+AppFlask/templates/
