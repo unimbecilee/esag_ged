@@ -4,7 +4,7 @@ import { BrowserRouter as Router, Route, Routes, Navigate, useNavigate } from "r
 import { theme } from "./theme";
 import { useAuthStatus } from "./hooks/useAuthStatus";
 import { SidebarContent } from "./components/Sidebar";
-import Login from "./components/login";
+import Login from "./components/Login";
 import { LoadingProvider } from "./contexts/LoadingContext";
 import Trash from "./components/Trash";
 import TestAPI from "./components/TestAPI";
