@@ -10,9 +10,9 @@ logger = logging.getLogger(__name__)
 
 dashboard_bp = Blueprint('dashboard', __name__)
 
-@dashboard_bp.route('/')
-def home():
-    return render_template('dashboard.html')
+# @dashboard_bp.route('/')
+# def home():
+#     return render_template('dashboard.html')
 
 @dashboard_bp.route('/dashboard/preferences', methods=['GET', 'POST'])
 @login_required
