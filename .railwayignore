@@ -1,0 +1,6 @@
+frontend/
+*.md
+.git/
+node_modules/
+.env
+*.log 
