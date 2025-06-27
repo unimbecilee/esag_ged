@@ -19,10 +19,9 @@ ALLOWED_EXTENSIONS = {'jpg', 'jpeg', 'png', 'pdf'}
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# Route GET pour afficher l’interface de numérisation
-@scan_bp.route('/', methods=['GET'])
-def scan_document():
-    return render_template('scan_document.html')
+# @scan_bp.route('/', methods=['GET'])
+# def scan_document():
+#     return render_template('scan_document.html')
 
 # ✅ Route POST pour envoyer une image à numériser
 @scan_bp.route('/', methods=['POST'])
@@ -77,7 +76,7 @@ def scanned_files():
         flash(f'Erreur lors de la récupération des fichiers numérisés : {str(e)}', 'danger')
         return redirect(url_for('dashboard.home'))
 
-# Extraire le texte d’un scan
+# Extraire le texte d'un scan
 @scan_bp.route('/extract-text/<int:scan_id>', methods=['POST'])
 def extract_text(scan_id):
     try:
@@ -113,7 +112,7 @@ def extract_text(scan_id):
         flash(f'Erreur lors de l\'extraction : {str(e)}', 'danger')
         return redirect(url_for('scan.scanned_files'))
 
-# Affichage d’un fichier numérisé
+# Affichage d'un fichier numérisé
 @scan_bp.route('/scanned/<int:scan_id>')
 def view_scanned_file(scan_id):
     try:
