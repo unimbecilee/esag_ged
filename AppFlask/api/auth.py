@@ -142,7 +142,7 @@ def handle_users_options():
 def handle_auth_me_options():
     return '', 200
 
-@bp.route('/auth/login', methods=['OPTIONS'])
+@bp.route('/login', methods=['OPTIONS'])
 def handle_auth_login_options():
     return '', 200
 
@@ -317,7 +317,7 @@ def get_users(current_user):
         traceback.print_exc()
         return jsonify({'message': f'Erreur lors de la récupération des utilisateurs: {str(e)}'}), 500
 
-@bp.route('/auth/login', methods=['POST'])
+@bp.route('/login', methods=['POST'])
 def login():
     data = request.get_json()
     email = data.get('email')
