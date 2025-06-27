@@ -49,8 +49,8 @@ export const useAuthStatus = (): AuthStatus => {
 
         // Vérifier si le token est valide avec une requête à l'API
         try {
-          console.log("Tentative de vérification du token à l'URL:", `${API_URL}/auth/me`);
-          const response = await fetch(`${API_URL}/auth/me`, {
+          console.log("Tentative de vérification du token à l'URL:", `${API_URL}/api/auth/me`);
+          const response = await fetch(`${API_URL}/api/auth/me`, {
             headers: {
               Authorization: `Bearer ${token}`,
             },
