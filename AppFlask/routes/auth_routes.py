@@ -112,7 +112,7 @@ def login():
             user = cursor.fetchone()
             logger.info(f"Résultat SQL user: {user}")
 
-            if user and check_password_hash(user[2], password):
+            if user and check_password_hash(user['mot_de_passe'], password):
                 # Création du token JWT
                 token = jwt.encode({
                     'user_id': user[0],
