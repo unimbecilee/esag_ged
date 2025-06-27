@@ -7,6 +7,9 @@ WORKDIR /app
 # Copier les fichiers de requirements
 COPY requirements.txt .
 
+# Installer la dépendance système pour python-magic
+RUN apt-get update && apt-get install -y libmagic1 && rm -rf /var/lib/apt/lists/*
+
 # Installer les dépendances Python
 RUN pip install --no-cache-dir -r requirements.txt
 
