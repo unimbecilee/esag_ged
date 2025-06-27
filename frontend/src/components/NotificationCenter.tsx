@@ -168,7 +168,7 @@ const NotificationCenter: React.FC = () => {
       });
 
       const response = await fetch(
-        `${config.API_URL}/notifications?${params}`,
+        `${config.API_URL}/api/notifications?${params}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -200,7 +200,7 @@ const NotificationCenter: React.FC = () => {
   const fetchUnreadCount = useCallback(async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${config.API_URL}/notifications/unread-count`, {
+      const response = await fetch(`${config.API_URL}/api/notifications/unread-count`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

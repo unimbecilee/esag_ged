@@ -59,7 +59,7 @@ const HistoryLog: React.FC<HistoryLogProps> = ({ filterType = 'all' }) => {
           }
 
           console.log('Calling API:', `${config.API_URL}/history`);
-          const response = await fetch(`${config.API_URL}/history`, {
+          const response = await fetch(`${config.API_URL}/api/history`, {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'

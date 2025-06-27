@@ -42,7 +42,9 @@ import {
   FiTrash2
 } from 'react-icons/fi';
 import { useAsyncOperation } from '../hooks/useAsyncOperation';
-import { API_URL } from '../config';
+import config from '../config';
+
+const API_URL = config.API_URL;
 import { asElementType } from '../utils/iconUtils';
 
 interface CreateFolderModalProps {

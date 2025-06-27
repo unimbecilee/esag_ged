@@ -96,7 +96,7 @@ const Trash: React.FC = () => {
 
       console.log("🔍 [DEBUG] Appel API trash avec token:", token.substring(0, 20) + "...");
 
-      const response = await fetch(`${config.API_URL}/trash`, {
+      const response = await fetch(`${config.API_URL}/api/trash`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -155,7 +155,7 @@ const Trash: React.FC = () => {
       const token = getAuthToken();
       if (!token) return;
 
-      const response = await fetch(`${config.API_URL}/trash/stats`, {
+      const response = await fetch(`${config.API_URL}/api/trash/stats`, {
         method: "GET",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -179,7 +179,7 @@ const Trash: React.FC = () => {
       const token = getAuthToken();
       if (!token) throw new Error("Token manquant");
 
-      const response = await fetch(`${config.API_URL}/trash/${itemId}/restore`, {
+      const response = await fetch(`${config.API_URL}/api/trash/${itemId}/restore`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -219,7 +219,7 @@ const Trash: React.FC = () => {
       const token = getAuthToken();
       if (!token) throw new Error("Token manquant");
 
-      const response = await fetch(`${config.API_URL}/trash/${itemId}`, {
+      const response = await fetch(`${config.API_URL}/api/trash/${itemId}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,

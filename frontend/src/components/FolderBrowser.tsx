@@ -31,7 +31,9 @@ import {
   FiCornerUpLeft,
 } from "react-icons/fi";
 import { ElementType } from "react";
-import { API_URL } from "../config";
+import config from "../config";
+
+const API_URL = config.API_URL;
 
 interface Folder {
   id: number;

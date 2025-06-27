@@ -35,7 +35,7 @@ const SystemLogs: React.FC<SystemLogsProps> = ({ filterType = "all" }) => {
         throw new Error('Token d\'authentification manquant');
       }
 
-      const url = new URL(`${config.API_URL}/history`);
+      const url = new URL(`${config.API_URL}/api/history`);
       if (filterType && filterType !== 'all') {
         url.searchParams.append('action_type', filterType);
       }

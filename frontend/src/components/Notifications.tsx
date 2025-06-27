@@ -86,7 +86,7 @@ const Notifications: React.FC = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${config.API_URL}/notifications?unread_only=${showUnreadOnly}`,
+        `${config.API_URL}/api/notifications?unread_only=${showUnreadOnly}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -117,7 +117,7 @@ const Notifications: React.FC = () => {
   const fetchSubscriptions = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${config.API_URL}/documents/my-subscriptions`, {
+      const response = await fetch(`${config.API_URL}/api/documents/my-subscriptions`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -136,7 +136,7 @@ const Notifications: React.FC = () => {
   const fetchUnreadCount = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${config.API_URL}/notifications/unread-count`, {
+      const response = await fetch(`${config.API_URL}/api/notifications/unread-count`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -156,7 +156,7 @@ const Notifications: React.FC = () => {
     await executeOperation(async () => {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${config.API_URL}/notifications/${notificationId}/read`,
+        `${config.API_URL}/api/notifications/${notificationId}/read`,
         {
           method: 'PUT',
           headers: {
@@ -182,7 +182,7 @@ const Notifications: React.FC = () => {
     await executeOperation(async () => {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${config.API_URL}/notifications/mark-all-read`,
+        `${config.API_URL}/api/notifications/mark-all-read`,
         {
           method: 'PUT',
           headers: {
@@ -209,7 +209,7 @@ const Notifications: React.FC = () => {
     await executeOperation(async () => {
       const token = localStorage.getItem('token');
       const response = await fetch(
-        `${config.API_URL}/documents/${documentId}/unsubscribe`,
+        `${config.API_URL}/api/documents/${documentId}/unsubscribe`,
         {
           method: 'DELETE',
           headers: {

@@ -208,7 +208,7 @@ const Sidebar: React.FC = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const response = await fetch(`${config.API_URL}/notifications/unread-count`, {
+      const response = await fetch(`${config.API_URL}/api/notifications/unread-count`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

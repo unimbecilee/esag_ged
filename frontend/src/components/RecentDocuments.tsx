@@ -80,7 +80,7 @@ const RecentDocuments: React.FC = () => {
             throw new Error('Token non trouvé');
           }
 
-          const response = await fetch(`${config.API_URL}/documents/recent-activities`, {
+          const response = await fetch(`${config.API_URL}/api/documents/recent-activities`, {
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'
@@ -179,7 +179,7 @@ const RecentDocuments: React.FC = () => {
             throw new Error('Token non trouvé');
           }
 
-          const response = await fetch(`${config.API_URL}/documents/recent-activities`, {
+          const response = await fetch(`${config.API_URL}/api/documents/recent-activities`, {
             method: 'DELETE',
             headers: {
               'Authorization': `Bearer ${token}`,
