@@ -7,6 +7,7 @@ import json
 from datetime import datetime
 from AppFlask.services.notification_service import notification_service
 from AppFlask.utils.trash_manager import move_document_to_trash
+from werkzeug.utils import secure_filename
 
 # Blueprint unifié pour tous les documents
 bp = Blueprint('documents_unified', __name__)
@@ -799,6 +800,135 @@ def upload_document_with_notifications(current_user):
         import traceback
         print(f"❌ Traceback: {traceback.format_exc()}")
         return jsonify({'error': 'Erreur lors de l\'upload'}), 500
+
+@bp.route('/documents', methods=['POST'])
+@token_required
+def create_document(current_user):
+    """Créer un nouveau document"""
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'Aucun fichier fourni'}), 400
+            
+        file = request.files['file']
+        if not file or file.filename == '':
+            return jsonify({'error': 'Nom de fichier vide'}), 400
+            
+        title = request.form.get('titre', file.filename)
+        description = request.form.get('description', '')
+        dossier_id = request.form.get('dossier_id')
+        
+        # Convertir dossier_id en entier ou None
+        try:
+            dossier_id = int(dossier_id) if dossier_id else None
+        except ValueError:
+            dossier_id = None
+            
+        # Sécuriser le nom du fichier
+        if not file.filename:
+            return jsonify({'error': 'Nom de fichier invalide'}), 400
+        filename = secure_filename(file.filename)
+        
+        # Sauvegarder le fichier
+        upload_folder = current_app.config['UPLOAD_FOLDER']
+        if not os.path.exists(upload_folder):
+            os.makedirs(upload_folder)
+            
+        file_path = os.path.join(upload_folder, filename)
+        file.save(file_path)
+        
+        # Obtenir la taille du fichier
+        file_size = os.path.getsize(file_path)
+        
+        # Déterminer la catégorie du fichier
+        extension = os.path.splitext(filename)[1].lower()
+        if extension in ['.pdf']:
+            categorie = 'PDF'
+        elif extension in ['.doc', '.docx']:
+            categorie = 'WORD'
+        elif extension in ['.xls', '.xlsx']:
+            categorie = 'EXCEL'
+        elif extension in ['.jpg', '.jpeg', '.png', '.gif']:
+            categorie = 'IMAGE'
+        else:
+            categorie = 'AUTRE'
+            
+        conn = db_connection()
+        if not conn:
+            return jsonify({'error': 'Erreur de connexion à la base de données'}), 500
+            
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        try:
+            # Insérer le document dans la base de données
+            query = """
+                INSERT INTO document (
+                    titre, description, chemin_fichier, taille, categorie,
+                    proprietaire_id, dossier_id, date_ajout, derniere_modification
+                ) VALUES (
+                    %s, %s, %s, %s, %s,
+                    %s, %s, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+                ) RETURNING id
+            """
+            cursor.execute(query, (
+                title, description, file_path, file_size, categorie,
+                current_user['id'], dossier_id
+            ))
+            
+            document_id = cursor.fetchone()['id']
+            
+            # Enregistrer l'action dans l'historique
+            query = """
+                INSERT INTO historique (
+                    action_type, entity_type, entity_id, entity_name,
+                    description, metadata, utilisateur_id, date_action
+                ) VALUES (
+                    'CREATE', 'DOCUMENT', %s, %s,
+                    %s, %s, %s, CURRENT_TIMESTAMP
+                )
+            """
+            cursor.execute(query, (
+                document_id,
+                title,
+                f"Création du document {title}",
+                json.dumps({
+                    'document_id': document_id,
+                    'dossier_id': dossier_id,
+                    'taille': file_size,
+                    'categorie': categorie
+                }),
+                current_user['id']
+            ))
+            
+            # Enregistrer dans system_logs
+            log_user_action(
+                current_user['id'],
+                'DOCUMENT_CREATE',
+                f"Création du document '{title}' (ID: {document_id})",
+                request
+            )
+            
+            conn.commit()
+            
+            return jsonify({
+                'status': 'success',
+                'message': 'Document créé avec succès',
+                'data': {'document_id': document_id}
+            }), 201
+            
+        except Exception as e:
+            if conn:
+                conn.rollback()
+            raise e
+            
+        finally:
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
+        
+    except Exception as e:
+        print(f"🚨 Erreur lors de la création du document: {e}")
+        return jsonify({'error': 'Erreur lors de la création du document'}), 500
 
 # ================================
 # ROUTES DE PARTAGE AVANCÉ
