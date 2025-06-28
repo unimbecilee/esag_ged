@@ -45,8 +45,6 @@ import { useAsyncOperation } from '../hooks/useAsyncOperation';
 import config from '../config';
 import { asElementType } from '../utils/iconUtils';
 
-const API_URL = config.API_URL;
-
 interface CreateFolderModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -179,7 +177,7 @@ const CreateFolderModal: React.FC<CreateFolderModalProps> = ({
       formData.append('dossier_id', folderId.toString());
 
       const token = localStorage.getItem('token');
-      const response = await fetch(`${API_URL}/api/documents`, {
+      const response = await fetch(`${config.API_URL}/api/documents`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -221,7 +219,7 @@ const CreateFolderModal: React.FC<CreateFolderModalProps> = ({
       const folderId = await executeOperation(
         async () => {
           const token = localStorage.getItem('token');
-          const response = await fetch(`${API_URL}/api/folders/`, {
+          const response = await fetch(`${config.API_URL}/api/folders/`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`,
