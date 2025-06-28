@@ -252,7 +252,7 @@ const MyDocuments: React.FC = () => {
             throw new Error('Token non trouvé');
           }
 
-          let url = `${config.API_URL}/api/documents/my`;
+          let url = `${config.API_URL}/documents/my`;
           const params = new URLSearchParams();
           
           if (currentFolderId !== null) {
@@ -315,7 +315,7 @@ const MyDocuments: React.FC = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      let url = `${config.API_URL}/api/folders`;
+      let url = `${config.API_URL}/folders`;
       if (currentFolderId !== null) {
         url += `?parent_id=${currentFolderId}`;
       }
@@ -342,7 +342,7 @@ const MyDocuments: React.FC = () => {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`${config.API_URL}/api/folders/${currentFolderId}/breadcrumb`, {
+      const response = await fetch(`${config.API_URL}/folders/${currentFolderId}/breadcrumb`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -369,7 +369,7 @@ const MyDocuments: React.FC = () => {
           }
           
           const response = await fetch(
-            `${config.API_URL}/api/documents/${documentId}/download`,
+            `${config.API_URL}/documents/${documentId}/download`,
             {
               headers: {
                 Authorization: `Bearer ${token}`,
@@ -419,7 +419,7 @@ const MyDocuments: React.FC = () => {
           }
           
           const response = await fetch(
-            `${config.API_URL}/api/documents/${selectedDocument}`,
+            `${config.API_URL}/documents/${selectedDocument}`,
             {
               method: "DELETE",
               headers: {
@@ -560,7 +560,7 @@ const MyDocuments: React.FC = () => {
             throw new Error('Token non trouvé');
           }
 
-          const response = await fetch(`${config.API_URL}/api/folders/${folderId}`, {
+          const response = await fetch(`${config.API_URL}/folders/${folderId}`, {
             method: 'DELETE',
             headers: {
               Authorization: `Bearer ${token}`,
@@ -593,7 +593,7 @@ const MyDocuments: React.FC = () => {
             throw new Error('Token non trouvé');
           }
 
-          const response = await fetch(`${config.API_URL}/api/folders/${folderId}`, {
+          const response = await fetch(`${config.API_URL}/folders/${folderId}`, {
             method: 'PUT',
             headers: {
               Authorization: `Bearer ${token}`,
