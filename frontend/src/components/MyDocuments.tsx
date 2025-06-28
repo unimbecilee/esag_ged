@@ -315,10 +315,12 @@ const MyDocuments: React.FC = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      let url = `${config.API_URL}/api/folders`;
+      let url = `${config.API_URL}/api/folders/`;
       if (currentFolderId !== null) {
         url += `?parent_id=${currentFolderId}`;
       }
+
+      console.log(`🔍 [DEBUG] URL dossiers appelée: ${url}`);
 
       const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
