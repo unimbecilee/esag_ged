@@ -25,6 +25,12 @@ import traceback
 import atexit
 import os
 
+# Liste des origines autorisées
+ALLOWED_ORIGINS = [
+    'http://localhost:3000',
+    'https://esag-ged.vercel.app'
+]
+
 def create_app():
     app = Flask(__name__, static_folder='../frontend/dist', static_url_path='/')
     
@@ -41,16 +47,18 @@ def create_app():
     def handle_preflight():
         if request.method == "OPTIONS":
             response = app.make_default_options_response()
-            response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
-            response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-            response.headers.add('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE, OPTIONS')
-            response.headers.add('Access-Control-Allow-Credentials', 'true')
-            response.headers.add('Access-Control-Max-Age', '3600')
+            origin = request.headers.get('Origin')
+            if origin in ALLOWED_ORIGINS:
+                response.headers.add('Access-Control-Allow-Origin', origin)
+                response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+                response.headers.add('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE, OPTIONS')
+                response.headers.add('Access-Control-Allow-Credentials', 'true')
+                response.headers.add('Access-Control-Max-Age', '3600')
             return response
 
     # Configuration CORS simplifiée pour éviter les problèmes
     CORS(app, 
-         origins="http://localhost:3000",
+         origins=ALLOWED_ORIGINS,
          supports_credentials=True,
          allow_headers=["Content-Type", "Authorization"],
          methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]
@@ -114,7 +122,7 @@ def create_app():
     @app.after_request
     def after_request(response):
         origin = request.headers.get('Origin', '')
-        if origin == 'http://localhost:3000':
+        if origin in ALLOWED_ORIGINS:
             response.headers.add('Access-Control-Allow-Origin', origin)
             response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
             response.headers.add('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE, OPTIONS')
@@ -142,10 +150,12 @@ def create_app():
     def api_options(path):
         """Gestionnaire pour toutes les requêtes OPTIONS vers /api/"""
         response = jsonify({'message': 'OK'})
-        response.headers.add('Access-Control-Allow-Origin', 'http://localhost:3000')
-        response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-        response.headers.add('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE, OPTIONS')
-        response.headers.add('Access-Control-Allow-Credentials', 'true')
+        origin = request.headers.get('Origin')
+        if origin in ALLOWED_ORIGINS:
+            response.headers.add('Access-Control-Allow-Origin', origin)
+            response.headers.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+            response.headers.add('Access-Control-Allow-Methods', 'GET, PUT, POST, DELETE, OPTIONS')
+            response.headers.add('Access-Control-Allow-Credentials', 'true')
         return response
 
     @app.route('/', defaults={'path': ''})
