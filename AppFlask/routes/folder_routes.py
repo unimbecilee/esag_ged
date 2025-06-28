@@ -8,6 +8,30 @@ from AppFlask.db import db_connection
 
 folder_bp = Blueprint('folder', __name__)
 
+@folder_bp.route('/', methods=['OPTIONS'])
+def handle_options():
+    """
+    Gère les requêtes OPTIONS pour la route racine
+    """
+    response = current_app.make_default_options_response()
+    response.headers['Access-Control-Allow-Origin'] = request.headers.get('Origin', '*')
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    response.headers['Access-Control-Allow-Credentials'] = 'true'
+    return response
+
+@folder_bp.route('/<int:folder_id>', methods=['OPTIONS'])
+def handle_folder_options(folder_id):
+    """
+    Gère les requêtes OPTIONS pour les routes avec ID
+    """
+    response = current_app.make_default_options_response()
+    response.headers['Access-Control-Allow-Origin'] = request.headers.get('Origin', '*')
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization'
+    response.headers['Access-Control-Allow-Credentials'] = 'true'
+    return response
+
 @folder_bp.route('/', methods=['POST'])
 @token_required
 def create_folder(current_user):
