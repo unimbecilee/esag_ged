@@ -33,14 +33,13 @@ def parse_database_url(url):
 def db_connection():
     try:
         # Priorité aux variables d'environnement pour le déploiement
-        db_url = os.environ.get('DATABASE_URL') or "postgresql://thefau:Passecale2002@@postgresql-thefau.alwaysdata.net:5432/thefau_archive"
+        db_url = os.environ.get('DATABASE_URL') or "postgresql://thefau:Passecale2002@postgresql-thefau.alwaysdata.net:5432/thefau_archive"
         if not db_url:
             logger.error("DATABASE_URL non définie dans les variables d'environnement")
             return None
 
         db_config = parse_database_url(db_url)
         logger.info("Tentative de connexion avec les paramètres :")
-        logger.info(f"Host: {db_config['host']}")
         logger.info(f"Database: {db_config['dbname']}")
         logger.info(f"User: {db_config['user']}")
         

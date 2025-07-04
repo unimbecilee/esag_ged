@@ -5,7 +5,7 @@ SECRET_KEY=votre_cle_secrete_super_longue_et_complexe
 FLASK_ENV=production
 
 # Base de données PostgreSQL (déjà configurée)
-DATABASE_URL=postgresql://thefau:Passecale2002@@postgresql-thefau.alwaysdata.net:5432/thefau_archive
+DATABASE_URL=postgresql://thefau:Passecale2002@postgresql-thefau.alwaysdata.net:5432/thefau_archive
 
 # Configuration Email
 MAIL_SERVER=smtp.gmail.com
