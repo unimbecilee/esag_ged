@@ -643,13 +643,24 @@ class ValidationWorkflowService:
                 return []
             
             user_role = user_result['role'] if isinstance(user_result, dict) else user_result[0]
+            logger.info(f"🔍 get_pending_approvals: user_id={user_id}, user_role={user_role}")
             
             # Récupérer les instances en attente d'approbation
             cursor.execute("""
-                SELECT DISTINCT wi.id as instance_id, wi.document_id, wi.date_debut,
-                       wi.commentaire, d.titre as document_titre, d.fichier,
-                       e.id as etape_id, e.nom as etape_nom, e.description as etape_description,
-                       u.nom as initiateur_nom, u.prenom as initiateur_prenom
+                SELECT DISTINCT 
+                    wi.id as instance_id, 
+                    wi.document_id, 
+                    wi.date_debut,
+                    wi.commentaire, 
+                    d.titre as document_titre, 
+                    d.fichier,
+                    e.id as etape_id, 
+                    e.nom as etape_nom, 
+                    e.description as etape_description,
+                    u.nom as initiateur_nom, 
+                    u.prenom as initiateur_prenom,
+                    COALESCE(d.priorite, 1) as priorite,
+                    wi.date_fin as date_echeance
                 FROM workflow_instance wi
                 JOIN document d ON wi.document_id = d.id
                 JOIN etapeworkflow e ON wi.etape_courante_id = e.id
@@ -657,19 +668,24 @@ class ValidationWorkflowService:
                 LEFT JOIN role r ON wa.role_id = r.id
                 JOIN utilisateur u ON wi.initiateur_id = u.id
                 WHERE wi.statut = %s
-                AND (r.nom = %s OR wa.utilisateur_id = %s)
-                AND NOT EXISTS (
-                    SELECT 1 FROM workflow_approbation wapp
-                    WHERE wapp.instance_id = wi.id 
-                    AND wapp.etape_id = e.id 
-                    AND wapp.approbateur_id = %s
+                AND (
+                    LOWER(r.nom) = LOWER(%s) 
+                    OR wa.utilisateur_id = %s
+                    OR (LOWER(r.nom) = 'admin' AND LOWER(%s) = 'admin')
                 )
-                ORDER BY wi.date_debut ASC
-            """, (self.STATUS_EN_COURS, user_role, user_id, user_id))
+                ORDER BY 
+                    COALESCE(d.priorite, 1) DESC,
+                    wi.date_debut ASC
+            """, (self.STATUS_EN_COURS, user_role, user_id, user_role))
             
             results = cursor.fetchall()
+            logger.info(f"🔍 get_pending_approvals: Trouvé {len(results)} validations en attente")
+            
             return [dict(row) for row in results] if results else []
             
+        except Exception as e:
+            logger.error(f"❌ Erreur dans get_pending_approvals: {e}")
+            return []
         finally:
             cursor.close()
             conn.close()
