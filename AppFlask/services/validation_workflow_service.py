@@ -659,7 +659,7 @@ class ValidationWorkflowService:
                     e.description as etape_description,
                     u.nom as initiateur_nom, 
                     u.prenom as initiateur_prenom,
-                    COALESCE(d.priorite, 1) as priorite,
+                    1 as priorite,
                     wi.date_fin as date_echeance
                 FROM workflow_instance wi
                 JOIN document d ON wi.document_id = d.id
@@ -674,7 +674,6 @@ class ValidationWorkflowService:
                     OR (LOWER(r.nom) = 'admin' AND LOWER(%s) = 'admin')
                 )
                 ORDER BY 
-                    COALESCE(d.priorite, 1) DESC,
                     wi.date_debut ASC
             """, (self.STATUS_EN_COURS, user_role, user_id, user_role))
             
