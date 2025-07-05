@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, ElementType } from "react";
 import {
   Modal,
   ModalOverlay,
@@ -110,7 +110,7 @@ const ValidationRequestModal: React.FC<ValidationRequestModalProps> = ({
       <ModalContent bg="#232946" color="white">
         <ModalHeader>
           <HStack>
-            <Icon as={FiCheckCircle} color="#3a8bfd" />
+            <Icon as={FiCheckCircle as ElementType} color="#3a8bfd" />
             <Text>Demander la validation du document</Text>
           </HStack>
         </ModalHeader>
@@ -158,7 +158,7 @@ const ValidationRequestModal: React.FC<ValidationRequestModalProps> = ({
               </Button>
               <Button 
                 colorScheme="green"
-                leftIcon={<Icon as={FiSend} />}
+                leftIcon={<Icon as={FiSend as ElementType} />}
                 onClick={handleRequestValidation}
                 isLoading={isLoading}
               >
