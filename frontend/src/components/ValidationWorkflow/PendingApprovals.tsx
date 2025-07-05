@@ -85,18 +85,32 @@ const PendingApprovals: React.FC<PendingApprovalsProps> = ({
   }, [userId]);
 
   const loadPendingApprovals = async () => {
+    console.log('🔍 loadPendingApprovals: Début du chargement des validations en attente');
+    console.log('🔍 userId:', userId);
     setIsLoading(true);
     
     await executeOperation(
       async () => {
         const token = checkAuthToken();
-        const response = await fetch(`${API_URL}/api/validation-workflow/pending`, {
+        console.log('🔍 Token récupéré:', token ? 'Présent' : 'Absent');
+        
+        const url = `${API_URL}/api/validation-workflow/pending`;
+        console.log('🔍 URL appelée:', url);
+        
+        const response = await fetch(url, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         
+        console.log('🔍 Réponse API:', response.status, response.statusText);
+        
         if (response.ok) {
           const data = await response.json();
+          console.log('🔍 Données reçues:', data);
           setApprovals(data.data || []);
+        } else {
+          console.error('❌ Erreur API:', response.status, response.statusText);
+          const errorText = await response.text();
+          console.error('❌ Détails erreur:', errorText);
         }
       },
       {
@@ -106,6 +120,7 @@ const PendingApprovals: React.FC<PendingApprovalsProps> = ({
     );
     
     setIsLoading(false);
+    console.log('🔍 loadPendingApprovals: Fin du chargement');
   };
 
   const handleApprovalClick = (approval: PendingApproval) => {

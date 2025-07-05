@@ -156,7 +156,15 @@ def get_pending_approvals(current_user: Dict[str, Any]) -> tuple:
     Récupère les approbations en attente pour l'utilisateur connecté
     """
     try:
+        current_app.logger.info(f"🔍 API /validation-workflow/pending appelée par user_id={current_user['id']}, role={current_user.get('role', 'N/A')}")
+        
         pending_approvals = validation_service.get_pending_approvals(current_user['id'])
+        
+        current_app.logger.info(f"🔍 Nombre de validations en attente trouvées: {len(pending_approvals)}")
+        
+        if pending_approvals:
+            for approval in pending_approvals:
+                current_app.logger.info(f"🔍 Validation: {approval.get('document_titre', 'N/A')} - Etape: {approval.get('etape_nom', 'N/A')}")
         
         return jsonify({
             'success': True,
@@ -165,7 +173,9 @@ def get_pending_approvals(current_user: Dict[str, Any]) -> tuple:
         }), 200
         
     except Exception as e:
-        current_app.logger.error(f"Erreur lors de la récupération des approbations en attente: {e}")
+        current_app.logger.error(f"❌ Erreur lors de la récupération des approbations en attente: {e}")
+        import traceback
+        current_app.logger.error(f"❌ Traceback: {traceback.format_exc()}")
         return jsonify({
             'success': False,
             'message': str(e)
