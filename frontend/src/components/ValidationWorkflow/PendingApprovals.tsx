@@ -205,6 +205,42 @@ const PendingApprovals: React.FC<PendingApprovalsProps> = ({
     });
   };
 
+  const createTestWorkflow = async () => {
+    console.log('🔍 Création d\'un workflow de test...');
+    
+    await executeOperation(
+      async () => {
+        const token = checkAuthToken();
+        const response = await fetch(`${API_URL}/api/validation-workflow/create-test`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('🔍 Workflow de test créé:', data);
+          toast({
+            title: "Workflow de test créé",
+            description: data.message,
+            status: "success",
+            duration: 5000,
+            isClosable: true,
+          });
+          
+          // Recharger les validations
+          loadPendingApprovals();
+        } else {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Erreur lors de la création du workflow de test');
+        }
+      },
+      {
+        loadingMessage: "Création du workflow de test...",
+        errorMessage: "Impossible de créer le workflow de test"
+      }
+    );
+  };
+
   if (isLoading) {
     return (
       <Flex justify="center" align="center" h="200px">
@@ -219,14 +255,24 @@ const PendingApprovals: React.FC<PendingApprovalsProps> = ({
         <Heading size="md" color="white">
           Validations en attente ({approvals.length})
         </Heading>
-        <Button
-          leftIcon={<Icon as={asElementType(FiClock)} />}
-          variant="outline"
-          size="sm"
-          onClick={loadPendingApprovals}
-        >
-          Actualiser
-        </Button>
+        <HStack spacing={2}>
+          <Button
+            leftIcon={<Icon as={asElementType(FiRefreshCw)} />}
+            variant="outline"
+            size="sm"
+            onClick={loadPendingApprovals}
+          >
+            Actualiser
+          </Button>
+          <Button
+            leftIcon={<Icon as={asElementType(FiCheck)} />}
+            colorScheme="green"
+            size="sm"
+            onClick={createTestWorkflow}
+          >
+            Créer un test
+          </Button>
+        </HStack>
       </Flex>
 
       {approvals.length === 0 ? (

@@ -335,4 +335,70 @@ def get_workflow_statistics(current_user: Dict[str, Any]) -> tuple:
         return jsonify({
             'success': False,
             'message': str(e)
+        }), 500
+
+@bp.route('/validation-workflow/create-test', methods=['POST'])
+@token_required
+def create_test_workflow(current_user: Dict[str, Any]) -> tuple:
+    """
+    Crée un workflow de test pour démonstration
+    """
+    try:
+        current_app.logger.info(f"🔍 Création d'un workflow de test par user_id={current_user['id']}")
+        
+        # Récupérer un document existant pour le test
+        from AppFlask.db import db_connection
+        from psycopg2.extras import RealDictCursor
+        
+        conn = db_connection()
+        if not conn:
+            raise Exception("Impossible de se connecter à la base de données")
+        
+        cursor = conn.cursor(cursor_factory=RealDictCursor)
+        
+        # Chercher un document qui n'a pas de workflow en cours
+        cursor.execute("""
+            SELECT d.id, d.titre 
+            FROM document d 
+            WHERE NOT EXISTS (
+                SELECT 1 FROM workflow_instance wi 
+                WHERE wi.document_id = d.id AND wi.statut = 'EN_COURS'
+            )
+            LIMIT 1
+        """)
+        
+        document = cursor.fetchone()
+        if not document:
+            cursor.close()
+            conn.close()
+            return jsonify({
+                'success': False,
+                'message': 'Aucun document disponible pour créer un workflow de test'
+            }), 400
+        
+        cursor.close()
+        conn.close()
+        
+        # Créer le workflow de validation
+        result = validation_service.start_validation_workflow(
+            document_id=document['id'],
+            initiateur_id=current_user['id'],
+            commentaire='Workflow de test créé automatiquement'
+        )
+        
+        current_app.logger.info(f"🔍 Workflow de test créé avec succès: {result}")
+        
+        return jsonify({
+            'success': True,
+            'data': result,
+            'message': f'Workflow de test créé pour le document "{document["titre"]}"'
+        }), 201
+        
+    except Exception as e:
+        current_app.logger.error(f"❌ Erreur lors de la création du workflow de test: {e}")
+        import traceback
+        current_app.logger.error(f"❌ Traceback: {traceback.format_exc()}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
         }), 500 
