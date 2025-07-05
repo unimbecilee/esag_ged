@@ -1,4 +1,4 @@
-import React, { useState, useEffect, ElementType } from "react";
+import React, { useState } from "react";
 import {
   Modal,
   ModalOverlay,
@@ -19,28 +19,28 @@ import {
   useToast,
   Icon
 } from '@chakra-ui/react';
-import { FiArchive, FiClock } from 'react-icons/fi';
+import { FiCheckCircle, FiSend } from 'react-icons/fi';
 import { useAsyncOperation } from '../../hooks/useAsyncOperation';
 import { checkAuthToken } from '../../utils/errorHandling';
 import config from '../../config';
 
-interface ArchiveRequestModalProps {
+interface ValidationRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
   documentId: number;
   documentTitle: string;
-  onArchiveRequested?: () => void;
+  onValidationRequested?: () => void;
 }
 
 /**
- * Composant modal pour demander l'archivage d'un document
+ * Composant modal pour demander la validation d'un document
  */
-const ArchiveRequestModal: React.FC<ArchiveRequestModalProps> = ({
+const ValidationRequestModal: React.FC<ValidationRequestModalProps> = ({
   isOpen,
   onClose,
   documentId,
   documentTitle,
-  onArchiveRequested
+  onValidationRequested
 }) => {
   const { executeOperation } = useAsyncOperation();
   const toast = useToast();
@@ -49,16 +49,16 @@ const ArchiveRequestModal: React.FC<ArchiveRequestModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
 
   /**
-   * Démarre le workflow de validation pour l'archivage du document
+   * Démarre le workflow de validation pour le document
    */
-  const handleRequestArchive = async () => {
+  const handleRequestValidation = async () => {
     setIsLoading(true);
 
     await executeOperation(
       async () => {
         const token = checkAuthToken();
         
-        // Utiliser le nouveau système de validation automatique
+        // Utiliser le système de validation automatique
         const response = await fetch(`${config.API_URL}/api/validation-workflow/start`, {
           method: 'POST',
           headers: {
@@ -67,13 +67,13 @@ const ArchiveRequestModal: React.FC<ArchiveRequestModalProps> = ({
           },
           body: JSON.stringify({
             document_id: documentId,
-            commentaire: comment.trim() || "Demande d'archivage"
+            commentaire: comment.trim() || "Demande de validation"
           })
         });
 
         if (!response.ok) {
           const error = await response.json();
-          throw new Error(error.message || 'Erreur lors de la demande d\'archivage');
+          throw new Error(error.message || 'Erreur lors de la demande de validation');
         }
 
         const result = await response.json();
@@ -81,18 +81,18 @@ const ArchiveRequestModal: React.FC<ArchiveRequestModalProps> = ({
 
         toast({
           title: 'Succès',
-          description: 'Demande d\'archivage soumise avec succès. Le workflow de validation a été démarré.',
+          description: 'Demande de validation soumise avec succès. Le workflow a été démarré.',
           status: 'success',
           duration: 5000,
           isClosable: true
         });
 
         handleClose();
-        onArchiveRequested?.();
+        onValidationRequested?.();
       },
       {
-        loadingMessage: "Soumission de la demande d'archivage...",
-        errorMessage: "Impossible de soumettre la demande d'archivage"
+        loadingMessage: "Soumission de la demande de validation...",
+        errorMessage: "Impossible de soumettre la demande de validation"
       }
     );
 
@@ -110,8 +110,8 @@ const ArchiveRequestModal: React.FC<ArchiveRequestModalProps> = ({
       <ModalContent bg="#232946" color="white">
         <ModalHeader>
           <HStack>
-            <Icon as={FiArchive as ElementType} color="#3a8bfd" />
-            <Text>Demander l'archivage du document</Text>
+            <Icon as={FiCheckCircle} color="#3a8bfd" />
+            <Text>Demander la validation du document</Text>
           </HStack>
         </ModalHeader>
         <ModalCloseButton />
@@ -128,11 +128,11 @@ const ArchiveRequestModal: React.FC<ArchiveRequestModalProps> = ({
 
             {/* Commentaire */}
             <FormControl>
-              <FormLabel>Motif de la demande d'archivage (optionnel)</FormLabel>
+              <FormLabel>Motif de la demande de validation (optionnel)</FormLabel>
               <Textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
-                placeholder="Précisez pourquoi ce document doit être archivé..."
+                placeholder="Précisez pourquoi ce document doit être validé..."
                 bg="#20243a"
                 resize="vertical"
                 rows={4}
@@ -143,10 +143,10 @@ const ArchiveRequestModal: React.FC<ArchiveRequestModalProps> = ({
             <Alert status="info" variant="left-accent">
               <AlertIcon />
               <Box>
-                <Text fontWeight="semibold">Processus d'archivage</Text>
+                <Text fontWeight="semibold">Processus de validation</Text>
                 <Text fontSize="sm">
                   Cette demande sera soumise à validation par votre chef de service, 
-                  puis par l'administrateur. Une fois approuvée, le document sera archivé.
+                  puis par l'administrateur. Vous serez notifié des décisions.
                 </Text>
               </Box>
             </Alert>
@@ -157,9 +157,9 @@ const ArchiveRequestModal: React.FC<ArchiveRequestModalProps> = ({
                 Annuler
               </Button>
               <Button 
-                colorScheme="blue"
-                leftIcon={<Icon as={FiClock as ElementType} />}
-                onClick={handleRequestArchive}
+                colorScheme="green"
+                leftIcon={<Icon as={FiSend} />}
+                onClick={handleRequestValidation}
                 isLoading={isLoading}
               >
                 Soumettre la demande
@@ -172,6 +172,4 @@ const ArchiveRequestModal: React.FC<ArchiveRequestModalProps> = ({
   );
 };
 
-export default ArchiveRequestModal;
-
-
+export default ValidationRequestModal; 

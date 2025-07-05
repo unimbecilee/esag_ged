@@ -14,6 +14,7 @@ import {
   FiDownload,
   FiShare2,
   FiTrash2,
+  FiCheckCircle,
 } from "react-icons/fi";
 import { ElementType } from "react";
 
@@ -34,6 +35,7 @@ interface ActionMenuProps {
   onEdit?: (id: number) => void;
   onShowPreview?: (id: number, title?: string) => void;
   onShowOCR?: (id: number, title?: string) => void;
+  onRequestValidation?: (id: number, title?: string) => void;
 }
 
 export const ActionMenu: React.FC<ActionMenuProps> = ({
@@ -47,6 +49,7 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
   onEdit,
   onShowPreview,
   onShowOCR,
+  onRequestValidation,
 }) => {
   const toast = useToast();
 
@@ -113,6 +116,20 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
     }
   };
 
+  const handleRequestValidation = () => {
+    if (onRequestValidation) {
+      onRequestValidation(docId, docTitle);
+    } else {
+      toast({
+        title: "Demande de validation",
+        description: "La demande de validation sera disponible prochainement",
+        status: "info",
+        duration: 3000,
+        isClosable: true,
+      });
+    }
+  };
+
   return (
     <Menu>
       <MenuButton
@@ -132,6 +149,15 @@ export const ActionMenu: React.FC<ActionMenuProps> = ({
           _hover={{ bg: "rgba(58, 139, 253, 0.1)" }}
         >
           Aperçu
+        </MenuItem>
+        <MenuItem
+          icon={<Icon as={FiCheckCircle as ElementType} />}
+          onClick={handleRequestValidation}
+          bg="transparent"
+          color="green.400"
+          _hover={{ bg: "rgba(0, 255, 0, 0.1)" }}
+        >
+          Demander validation
         </MenuItem>
         <MenuItem
           icon={<Icon as={FiDownload as ElementType} />}
