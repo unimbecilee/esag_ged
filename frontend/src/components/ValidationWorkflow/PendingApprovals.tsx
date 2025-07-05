@@ -41,7 +41,9 @@ import {
   Th,
   Td,
   useDisclosure,
-  Select
+  Select,
+  Tooltip,
+  Progress
 } from '@chakra-ui/react';
 import {
   FiClock,
@@ -53,9 +55,10 @@ import {
   FiRefreshCw,
   FiCheck,
   FiX,
-  FiAlertCircle
+  FiAlertCircle,
+  FiUsers
 } from 'react-icons/fi';
-import { PendingApprovalsProps, PendingApproval, ProcessApprovalRequest } from '../../types/workflow';
+import { PendingApprovalsProps, PendingApproval } from '../../types/workflow';
 import { useAsyncOperation } from '../../hooks/useAsyncOperation';
 import validationWorkflowService from '../../services/validationWorkflowService';
 import { asElementType } from '../../utils/iconUtils';
@@ -111,11 +114,21 @@ const PendingApprovals: React.FC<PendingApprovalsProps> = ({
           console.error('❌ Erreur API:', response.status, response.statusText);
           const errorText = await response.text();
           console.error('❌ Détails erreur:', errorText);
+          throw new Error('Erreur lors du chargement des validations');
         }
       },
       {
         loadingMessage: "Chargement des validations en attente...",
-        errorMessage: "Impossible de charger les validations"
+        errorMessage: "Impossible de charger les validations",
+        onError: (error) => {
+          toast({
+            title: "Erreur de chargement",
+            description: error.message,
+            status: "error",
+            duration: 5000,
+            isClosable: true,
+          });
+        }
       }
     );
     
@@ -131,7 +144,16 @@ const PendingApprovals: React.FC<PendingApprovalsProps> = ({
   };
 
   const handleSubmitDecision = async () => {
-    if (!selectedApproval || !decision) return;
+    if (!selectedApproval || !decision) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner une décision",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+      return;
+    }
 
     await executeOperation(
       async () => {
@@ -161,14 +183,73 @@ const PendingApprovals: React.FC<PendingApprovalsProps> = ({
           
           onClose();
           loadPendingApprovals();
+          if (onApprovalProcessed) {
+            onApprovalProcessed();
+          }
         } else {
-          throw new Error('Erreur lors de l\'enregistrement');
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Erreur lors de l\'enregistrement');
         }
       },
       {
         loadingMessage: "Enregistrement de la décision...",
         errorMessage: "Impossible d'enregistrer la décision"
       }
+    );
+  };
+
+  const getApprovalTypeInfo = (type: string) => {
+    switch (type) {
+      case 'SIMPLE':
+        return {
+          icon: FiCheck,
+          label: 'Approbation simple',
+          description: 'Une seule approbation requise',
+          color: 'green'
+        };
+      case 'MULTIPLE':
+        return {
+          icon: FiUsers,
+          label: 'Approbation multiple',
+          description: 'Plusieurs approbations requises',
+          color: 'blue'
+        };
+      case 'PARALLELE':
+        return {
+          icon: FiUsers,
+          label: 'Approbation parallèle',
+          description: 'Approbations simultanées requises',
+          color: 'purple'
+        };
+      default:
+        return {
+          icon: FiAlertCircle,
+          label: 'Type inconnu',
+          description: 'Type d\'approbation non reconnu',
+          color: 'gray'
+        };
+    }
+  };
+
+  const renderApprovalProgress = (approval: PendingApproval) => {
+    const progress = (approval.approbations_count / approval.approbations_necessaires) * 100;
+    return (
+      <Tooltip
+        label={`${approval.approbations_count}/${approval.approbations_necessaires} approbation(s)`}
+        placement="top"
+      >
+        <Box w="100%">
+          <Progress
+            value={progress}
+            size="sm"
+            colorScheme={progress >= 100 ? "green" : "blue"}
+            borderRadius="full"
+          />
+          <Text fontSize="sm" mt={1}>
+            {approval.approbations_count}/{approval.approbations_necessaires} approbation(s)
+          </Text>
+        </Box>
+      </Tooltip>
     );
   };
 
@@ -249,170 +330,137 @@ const PendingApprovals: React.FC<PendingApprovalsProps> = ({
     );
   }
 
+  if (!approvals.length) {
+    return (
+      <Alert status="info" borderRadius="md">
+        <AlertIcon />
+        <AlertDescription>Aucune validation en attente</AlertDescription>
+      </Alert>
+    );
+  }
+
   return (
-    <Box>
-      <Flex justify="space-between" align="center" mb={6}>
-        <Heading size="md" color="white">
-          Validations en attente ({approvals.length})
-        </Heading>
-        <HStack spacing={2}>
-          <Button
-            leftIcon={<Icon as={asElementType(FiRefreshCw)} />}
-            variant="outline"
-            size="sm"
-            onClick={loadPendingApprovals}
-          >
-            Actualiser
-          </Button>
-          <Button
-            leftIcon={<Icon as={asElementType(FiCheck)} />}
-            colorScheme="green"
-            size="sm"
-            onClick={createTestWorkflow}
-          >
-            Créer un test
-          </Button>
-        </HStack>
+    <VStack spacing={4} align="stretch" w="100%">
+      <Flex align="center" mb={4}>
+        <Heading size="md">Validations en attente ({approvals.length})</Heading>
+        <Spacer />
+        <Button
+          leftIcon={<Icon as={FiRefreshCw} />}
+          onClick={loadPendingApprovals}
+          colorScheme="blue"
+          variant="outline"
+          size="sm"
+        >
+          Actualiser
+        </Button>
       </Flex>
 
-      {approvals.length === 0 ? (
-        <Alert status="info">
-          <AlertIcon />
-          Aucune validation en attente
-        </Alert>
-      ) : (
-        <VStack spacing={4} align="stretch">
-          {approvals.map((approval) => (
-            <Card
-              key={`${approval.instance_id}-${approval.etape_id}`}
-              bg="#2a3657"
-              borderColor={isOverdue(approval.date_echeance) ? "red.500" : "#3a445e"}
-              borderWidth="1px"
-              cursor="pointer"
-              onClick={() => handleApprovalClick(approval)}
-              _hover={{
-                transform: "translateY(-2px)",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-                borderColor: "#3a8bfd"
-              }}
-              transition="all 0.2s"
-            >
-              <CardBody>
-                <VStack align="stretch" spacing={3}>
-                  <Flex justify="space-between" align="start">
-                    <VStack align="start" spacing={1} flex={1}>
-                      <HStack spacing={2} wrap="wrap">
-                        <Heading size="sm" color="white">
-                          {approval.document_titre}
-                        </Heading>
-                        <Badge colorScheme={getPriorityColor(approval.priorite)}>
-                          {getPriorityLabel(approval.priorite)}
-                        </Badge>
-                        {isOverdue(approval.date_echeance) && (
-                          <Badge colorScheme="red">
-                            <Icon as={asElementType(FiAlertCircle)} mr={1} />
-                            En retard
-                          </Badge>
-                        )}
-                      </HStack>
-                      
-                      <Text fontSize="sm" color="gray.300">
-                        {approval.workflow_nom} - {approval.etape_nom}
-                      </Text>
-                      
-                      <HStack spacing={4} fontSize="xs" color="gray.400">
-                        <HStack>
-                          <Icon as={asElementType(FiUser)} />
-                          <Text>{approval.initiateur_prenom} {approval.initiateur_nom}</Text>
-                        </HStack>
-                        <HStack>
-                          <Icon as={asElementType(FiCalendar)} />
-                          <Text>{formatDate(approval.date_creation)}</Text>
-                        </HStack>
-                        {approval.date_echeance && (
-                          <HStack>
-                            <Icon as={asElementType(FiClock)} />
-                            <Text>Échéance: {formatDate(approval.date_echeance)}</Text>
-                          </HStack>
-                        )}
-                      </HStack>
-                    </VStack>
-                    
-                    <HStack>
-                      <Button
-                        size="sm"
-                        colorScheme="green"
-                        leftIcon={<Icon as={asElementType(FiCheck)} />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedApproval(approval);
-                          setDecision('APPROUVE');
-                          setComment('');
-                          onOpen();
-                        }}
-                      >
-                        Approuver
-                      </Button>
-                      <Button
-                        size="sm"
-                        colorScheme="red"
-                        leftIcon={<Icon as={asElementType(FiX)} />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedApproval(approval);
-                          setDecision('REJETE');
-                          setComment('');
-                          onOpen();
-                        }}
-                      >
-                        Rejeter
-                      </Button>
-                    </HStack>
-                  </Flex>
-                  
-                  {approval.description && (
-                    <Text fontSize="sm" color="gray.300" fontStyle="italic">
-                      {approval.description}
-                    </Text>
-                  )}
-                </VStack>
-              </CardBody>
-            </Card>
-          ))}
-        </VStack>
-      )}
+      {approvals.map((approval) => {
+        const typeInfo = getApprovalTypeInfo(approval.type_approbation);
+        const isLate = isOverdue(approval.date_echeance);
 
-      {/* Modal de confirmation */}
-      <Modal isOpen={isOpen} onClose={onClose} size="lg">
+        return (
+          <Card key={`${approval.instance_id}-${approval.etape_id}`} variant="outline">
+            <CardBody>
+              <VStack align="stretch" spacing={3}>
+                <Flex align="center" justify="space-between">
+                  <HStack>
+                    <Icon as={FiFileText} color="blue.500" boxSize={5} />
+                    <Text fontWeight="bold">{approval.document_titre}</Text>
+                    <Tooltip label={typeInfo.description}>
+                      <Badge colorScheme={typeInfo.color} variant="subtle">
+                        <HStack spacing={1}>
+                          <Icon as={typeInfo.icon} />
+                          <Text>{typeInfo.label}</Text>
+                        </HStack>
+                      </Badge>
+                    </Tooltip>
+                  </HStack>
+                  {isLate && (
+                    <Badge colorScheme="red">
+                      <HStack spacing={1}>
+                        <Icon as={FiClock} />
+                        <Text>En retard</Text>
+                      </HStack>
+                    </Badge>
+                  )}
+                </Flex>
+
+                <Divider />
+
+                <HStack spacing={4}>
+                  <VStack align="start" flex={1}>
+                    <Text fontSize="sm" color="gray.600">
+                      <Icon as={FiUser} mr={2} />
+                      Initiateur: {approval.initiateur_nom} {approval.initiateur_prenom}
+                    </Text>
+                    <Text fontSize="sm" color="gray.600">
+                      <Icon as={FiCalendar} mr={2} />
+                      Date début: {formatDate(approval.date_debut)}
+                    </Text>
+                  </VStack>
+
+                  <VStack align="start" flex={1}>
+                    <Text fontSize="sm" color="gray.600">
+                      Étape: {approval.etape_nom}
+                    </Text>
+                    {renderApprovalProgress(approval)}
+                  </VStack>
+                </HStack>
+
+                <ButtonGroup spacing={2} alignSelf="flex-end">
+                  <Button
+                    leftIcon={<Icon as={FiXCircle} />}
+                    colorScheme="red"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setDecision('REJETE');
+                      handleApprovalClick(approval);
+                    }}
+                  >
+                    Rejeter
+                  </Button>
+                  <Button
+                    leftIcon={<Icon as={FiCheckCircle} />}
+                    colorScheme="green"
+                    onClick={() => {
+                      setDecision('APPROUVE');
+                      handleApprovalClick(approval);
+                    }}
+                    size="sm"
+                  >
+                    Approuver
+                  </Button>
+                </ButtonGroup>
+              </VStack>
+            </CardBody>
+          </Card>
+        );
+      })}
+
+      <Modal isOpen={isOpen} onClose={onClose}>
         <ModalOverlay />
-        <ModalContent bg="#2a3657" color="white">
+        <ModalContent>
           <ModalHeader>
-            {decision === 'APPROUVE' ? 'Approuver' : 'Rejeter'} le document
+            {decision === 'APPROUVE' ? 'Approuver le document' : 'Rejeter le document'}
           </ModalHeader>
           <ModalCloseButton />
-          
           <ModalBody>
             {selectedApproval && (
-              <VStack spacing={4} align="stretch">
-                <Box p={3} bg="#1a2332" borderRadius="md">
-                  <Text fontWeight="bold">{selectedApproval.document_titre}</Text>
-                  <Text fontSize="sm" color="gray.400">
-                    {selectedApproval.workflow_nom} - {selectedApproval.etape_nom}
-                  </Text>
-                  <Text fontSize="sm" color="gray.400">
-                    Initié par {selectedApproval.initiateur_prenom} {selectedApproval.initiateur_nom}
-                  </Text>
-                </Box>
-                
+              <VStack align="stretch" spacing={4}>
+                <Text>
+                  Document : <strong>{selectedApproval.document_titre}</strong>
+                </Text>
+                <Text>
+                  Étape : <strong>{selectedApproval.etape_nom}</strong>
+                </Text>
                 <FormControl>
-                  <FormLabel>Commentaire (optionnel)</FormLabel>
+                  <FormLabel>Commentaire</FormLabel>
                   <Textarea
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
-                    placeholder={`Ajouter un commentaire pour ${decision === 'APPROUVE' ? 'l\'approbation' : 'le rejet'}...`}
-                    bg="#1a2332"
-                    borderColor="#3a445e"
-                    _focus={{ borderColor: "#3a8bfd" }}
+                    placeholder="Ajouter un commentaire (optionnel)"
                   />
                 </FormControl>
               </VStack>
@@ -426,14 +474,13 @@ const PendingApprovals: React.FC<PendingApprovalsProps> = ({
             <Button
               colorScheme={decision === 'APPROUVE' ? 'green' : 'red'}
               onClick={handleSubmitDecision}
-              leftIcon={<Icon as={asElementType(decision === 'APPROUVE' ? FiCheck : FiX)} />}
             >
               {decision === 'APPROUVE' ? 'Approuver' : 'Rejeter'}
             </Button>
           </ModalFooter>
         </ModalContent>
       </Modal>
-    </Box>
+    </VStack>
   );
 };
 

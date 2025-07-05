@@ -631,22 +631,72 @@ class ValidationWorkflowService:
         """Récupère les approbations en attente pour un utilisateur"""
         conn = db_connection()
         if not conn:
+            logger.error("❌ get_pending_approvals: Impossible de se connecter à la base de données")
             return []
         
         try:
             cursor = conn.cursor(cursor_factory=RealDictCursor)
+            if not cursor:
+                logger.error("❌ get_pending_approvals: Impossible de créer un curseur")
+                return []
             
             # Récupérer le rôle de l'utilisateur
             cursor.execute("SELECT role FROM utilisateur WHERE id = %s", (user_id,))
             user_result = cursor.fetchone()
-            if not user_result:
+            if not user_result or not isinstance(user_result, dict):
+                logger.error(f"❌ get_pending_approvals: Utilisateur {user_id} non trouvé")
                 return []
             
-            user_role = user_result['role'] if isinstance(user_result, dict) else user_result[0]
+            user_role = str(user_result.get('role', '')).lower()
+            if not user_role:
+                logger.error(f"❌ get_pending_approvals: Rôle non trouvé pour l'utilisateur {user_id}")
+                return []
+                
             logger.info(f"🔍 get_pending_approvals: user_id={user_id}, user_role={user_role}")
             
             # Récupérer les instances en attente d'approbation
-            cursor.execute("""
+            query = """
+                WITH workflow_steps AS (
+                    SELECT DISTINCT 
+                        wi.id as instance_id,
+                        e.type_approbation,
+                        (
+                            SELECT COUNT(*) 
+                            FROM workflow_approbation wa2 
+                            WHERE wa2.instance_id = wi.id 
+                            AND wa2.etape_id = e.id
+                        ) as approbations_count,
+                        (
+                            SELECT COUNT(*) 
+                            FROM workflow_approbateur wa3 
+                            WHERE wa3.etape_id = e.id
+                        ) as approbateurs_requis
+                    FROM workflow_instance wi
+                    JOIN etapeworkflow e ON wi.etape_courante_id = e.id
+                    JOIN workflow_approbateur wa ON e.id = wa.etape_id
+                    LEFT JOIN role r ON wa.role_id = r.id
+                    WHERE wi.statut = %s
+                    AND (
+                        wa.utilisateur_id = %s
+                        OR (wa.role_id IS NOT NULL AND LOWER(r.nom) = %s)
+                        OR (%s = 'admin')
+                    )
+                    AND (
+                        -- Pour type SIMPLE : aucune approbation existante
+                        (e.type_approbation = 'SIMPLE' AND NOT EXISTS (
+                            SELECT 1 FROM workflow_approbation wapp
+                            WHERE wapp.instance_id = wi.id
+                            AND wapp.etape_id = e.id
+                        ))
+                        -- Pour type MULTIPLE : l'utilisateur n'a pas encore approuvé
+                        OR (e.type_approbation IN ('MULTIPLE', 'PARALLELE') AND NOT EXISTS (
+                            SELECT 1 FROM workflow_approbation wapp
+                            WHERE wapp.instance_id = wi.id
+                            AND wapp.etape_id = e.id
+                            AND wapp.approbateur_id = %s
+                        ))
+                    )
+                )
                 SELECT DISTINCT 
                     wi.id as instance_id, 
                     wi.document_id, 
@@ -657,37 +707,91 @@ class ValidationWorkflowService:
                     e.id as etape_id, 
                     e.nom as etape_nom, 
                     e.description as etape_description,
+                    e.type_approbation,
                     u.nom as initiateur_nom, 
                     u.prenom as initiateur_prenom,
+                    u.role as initiateur_role,
+                    wi.statut as instance_statut,
                     1 as priorite,
-                    wi.date_fin as date_echeance
-                FROM workflow_instance wi
+                    wi.date_fin as date_echeance,
+                    ws.approbations_count,
+                    ws.approbateurs_requis,
+                    CASE 
+                        WHEN e.type_approbation = 'SIMPLE' THEN 1
+                        ELSE ws.approbateurs_requis
+                    END as approbations_necessaires
+                FROM workflow_steps ws
+                JOIN workflow_instance wi ON ws.instance_id = wi.id
                 JOIN document d ON wi.document_id = d.id
                 JOIN etapeworkflow e ON wi.etape_courante_id = e.id
                 JOIN workflow_approbateur wa ON e.id = wa.etape_id
                 LEFT JOIN role r ON wa.role_id = r.id
                 JOIN utilisateur u ON wi.initiateur_id = u.id
-                WHERE wi.statut = %s
-                AND (
-                    LOWER(r.nom) = LOWER(%s) 
-                    OR wa.utilisateur_id = %s
-                    OR (LOWER(r.nom) = 'admin' AND LOWER(%s) = 'admin')
+                WHERE (
+                    -- Pour type SIMPLE : pas encore d'approbation
+                    (e.type_approbation = 'SIMPLE' AND ws.approbations_count = 0)
+                    -- Pour type MULTIPLE/PARALLELE : pas encore toutes les approbations requises
+                    OR (e.type_approbation IN ('MULTIPLE', 'PARALLELE') 
+                        AND ws.approbations_count < ws.approbateurs_requis)
                 )
-                ORDER BY 
-                    wi.date_debut ASC
-            """, (self.STATUS_EN_COURS, user_role, user_id, user_role))
+                ORDER BY wi.date_debut ASC
+            """
+            
+            cursor.execute(query, (
+                self.STATUS_EN_COURS,
+                user_id,
+                user_role,
+                user_role,
+                user_id
+            ))
             
             results = cursor.fetchall()
+            if not results:
+                logger.info(f"🔍 get_pending_approvals: Aucune validation en attente pour l'utilisateur {user_id}")
+                return []
+                
             logger.info(f"🔍 get_pending_approvals: Trouvé {len(results)} validations en attente")
             
-            return [dict(row) for row in results] if results else []
+            # Log détaillé des résultats
+            formatted_results = []
+            for result in results:
+                if not isinstance(result, dict):
+                    continue
+                    
+                instance_id = int(result.get('instance_id', 0))
+                if instance_id == 0:
+                    continue
+                    
+                doc_titre = str(result.get('document_titre', 'Sans titre'))
+                etape_nom = str(result.get('etape_nom', 'Sans étape'))
+                initiateur_nom = str(result.get('initiateur_nom', ''))
+                initiateur_prenom = str(result.get('initiateur_prenom', ''))
+                initiateur_role = str(result.get('initiateur_role', ''))
+                instance_statut = str(result.get('instance_statut', ''))
+                type_approbation = str(result.get('type_approbation', ''))
+                approbations_count = int(result.get('approbations_count', 0))
+                approbations_necessaires = int(result.get('approbations_necessaires', 0))
+                
+                logger.info(f"  - Instance {instance_id}: {doc_titre}")
+                logger.info(f"    Étape: {etape_nom} (Type: {type_approbation})")
+                logger.info(f"    Initiateur: {initiateur_nom} {initiateur_prenom} ({initiateur_role})")
+                logger.info(f"    Statut: {instance_statut}")
+                logger.info(f"    Approbations: {approbations_count}/{approbations_necessaires}")
+                
+                formatted_results.append(dict(result))
+            
+            return formatted_results
             
         except Exception as e:
             logger.error(f"❌ Erreur dans get_pending_approvals: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             return []
         finally:
-            cursor.close()
-            conn.close()
+            if cursor:
+                cursor.close()
+            if conn:
+                conn.close()
     
     def get_workflow_instance_details(self, instance_id: int) -> Optional[Dict]:
         """Récupère les détails d'une instance de workflow"""

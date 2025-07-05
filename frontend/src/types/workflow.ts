@@ -49,22 +49,27 @@ export interface WorkflowApprobation {
 }
 
 export interface PendingApproval {
-  id: number;
   instance_id: number;
   document_id: number;
   document_titre: string;
   fichier?: string;
-  date_creation: string;
+  date_debut: string;
+  date_fin?: string;
   commentaire?: string;
   etape_id: number;
   etape_nom: string;
   etape_description?: string;
+  type_approbation: 'SIMPLE' | 'MULTIPLE' | 'PARALLELE';
   initiateur_nom: string;
   initiateur_prenom: string;
-  workflow_nom: string;
+  initiateur_role?: string;
+  workflow_nom?: string;
   date_echeance?: string;
   priorite: number;
   description?: string;
+  approbations_count: number;
+  approbations_necessaires: number;
+  instance_statut: WorkflowStatus;
 }
 
 export interface WorkflowInstanceDetails {
